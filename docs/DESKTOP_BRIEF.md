@@ -1,0 +1,17 @@
+# Windows home-training application
+
+Surface: personal training workspace / desktop application. User: a Russian-speaking person training at home. Job: select a realistic home routine, log sets with a rest timer, review progress and reopen the application without losing anything.
+
+Object model: one local profile owns routines, a weekly schedule, active/completed workouts, bodyweight measurements, equipment preferences, settings. The existing Zustand model and training calculations remain canonical; the desktop main process persists its snapshots atomically. No fabricated workout history. Starter routines are explicitly templates, applied only on request.
+
+Visual contract: GitHub/Codex-inspired restrained desktop shell; Segoe UI, 13/14px controls, 23/24px page titles, 4/8px spacing rhythm, 8px corners, neutral off-white/charcoal surfaces, hairline borders, monochrome controls and semantic status colors, semantic error colors. Existing SVG icon set. No decorative gradients or motion. Light and dark modes. Sidebar 224px, content max 1180px, narrow-window collapse, native Windows title controls.
+
+Information architecture: /home (program table, weekly schedule and recent-session tabs, weight entry); /plan (schedule and routine editor); /workout (start/resume, log sets, finish); /library and /muscles (find exercises); /history and /stats; /settings (preferences, durable save state, offline media, backups); /settings/advanced (existing training controls). The home page is a program list, without decorative metric cards. Settings use plain sections. Active workouts place the exercise demonstration beside the set controls, with a navigable exercise outline in wide windows. Global navigation always available; active session survives navigation and restart. Ctrl+K opens navigation/search, Escape dismisses; native title bar controls and visible focus rings.
+
+Implementation slice: desktop/main.cjs, preload.cjs, storage.cjs, media.cjs, build.mjs; frontend/src/desktop/*; App.jsx, main.jsx, useStore.js, exercises.js, Settings.jsx. Keep the upstream web build separate behind VITE_DESKTOP. Electron: sandboxed renderer, no Node integration, narrow validated IPC, local app protocol, no arbitrary filesystem IPC, deny unrequested external navigation/permissions.
+
+States: new profile/empty history; home-plan preview then apply (preserve existing schedule unless explicitly replacing); active session; saving/saved/error/retry; backup dialog cancel/success; corrupt import reject; media missing/downloading/ready/error/retry; library no results; collapsed navigation; selected/hover/keyboard focus; system light/dark. No AI coach configuration in desktop v1. Native notification reminders while the app is open are deferred; built-in rest timer stays.
+
+Checks fixed before implementation: frontend regression tests; desktop storage tests (atomic saves, validation, recovery, bounded backups); build; Electron end-to-end creation of home plan, begin session/log set/finish, restart persistence, rejected invalid import, offline/no backend requests, light/dark and narrow-window screenshots; Windows installer generation and actual installed executable launch. Source published to the user's fork in a focused PR. Artifacts: installer, screenshot, compact verification report.
+
+Source maps referenced by installed design skills under docs/design-workbench are not present in this repository or the skill package. Use this target-specific brief and available skill instructions instead; no packet validator exists here.

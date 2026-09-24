@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { t } from '../lib/i18n.js'
+import { DESKTOP } from '../desktop/platform.js'
+import Icon from './Icon.jsx'
 
 // Swipe-left-to-reveal-delete, same touch/mouse-drag shape Modals.jsx already uses for
 // swipe-to-dismiss (drag ref, transform during move, snap on release) — horizontal instead
@@ -69,6 +71,11 @@ export default function SwipeToDelete({ children, onDelete, deleteLabel, classNa
     el.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => el.removeEventListener('touchmove', onTouchMove)
   }, [])
+
+  if (DESKTOP) return <div className="desktop-delete-row">
+    <div className={className} onClick={onClick}>{children}</div>
+    <button className="iconbtn" aria-label={deleteLabel || t('Delete')} title={deleteLabel || t('Delete')} onClick={onDelete}><Icon name="trash" /></button>
+  </div>
 
   return (
     <div ref={outerRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--r-card)' }}

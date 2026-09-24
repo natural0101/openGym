@@ -1,3 +1,4 @@
+import { HOME_NAMES } from '../desktop/home-names.js'
 // Runtime-agnostic core of the i18n module: state, constants and readers (t, dateLocale,
 // instrFor, exerciseNameFor, getLang). Plain Node-loadable — the browser-only pieces
 // (import.meta.glob lazy
@@ -76,6 +77,7 @@ export const instrFor = ex => (instr && instr[ex.id]) || ex.st || []
 // Built-in catalogue names are bilingual when a complete translated name pack is active.
 // User-created exercises have no entry in the pack and keep their exact chosen name.
 export const exerciseNameFor = ex => {
+  if (import.meta.env?.VITE_DESKTOP === '1' && lang === 'ru' && HOME_NAMES[ex?.id]) return HOME_NAMES[ex.id]
   const translated = exerciseNames && ex && exerciseNames[ex.id]
   if (!translated) return ex?.n || ''
   // Some names (Burpee, Pilates, brand/model terms) are the established term in the target
@@ -90,6 +92,7 @@ export const exerciseNameFor = ex => {
 
 // Search both the localized and canonical English title without changing persisted data.
 export const exerciseNameSearchText = ex => {
+  if (import.meta.env?.VITE_DESKTOP === '1' && HOME_NAMES[ex?.id]) return HOME_NAMES[ex.id] + ' ' + ex.n
   const translated = exerciseNames && ex && exerciseNames[ex.id]
   return translated ? `${translated} ${ex.n}` : (ex?.n || '')
 }

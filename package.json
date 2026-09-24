@@ -1,5 +1,31 @@
 {
+  "name": "opengym-desktop",
+  "productName": "openGym",
+  "version": "1.0.0",
+  "description": "Private, offline home training for Windows",
+  "author": "natural0101 and openGym contributors",
+  "license": "AGPL-3.0-or-later",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "build": "node desktop/build.mjs",
+    "start": "electron .",
+    "dist": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "pack": "npm run build && electron-builder --dir --win --x64 --publish never",
+    "test:desktop": "node --test desktop/test/*.test.cjs",
+    "test:smoke": "node desktop/smoke.mjs"
+  },
   "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "playwright": "^1.58.2",
     "js-yaml": "^4.1.0"
+  },
+  "build": {
+    "appId": "com.natural0101.opengym",
+    "productName": "openGym",
+    "directories": { "output": "release" },
+    "files": ["desktop/*.cjs", "frontend/dist/**/*", "LICENSE", "NOTICE.md", "package.json"],
+    "win": { "target": "nsis", "icon": "frontend/public/icon-512.png", "signAndEditExecutable": true },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "openGym", "deleteAppDataOnUninstall": false, "artifactName": "openGym-Setup-${version}-${arch}.${ext}" }
   }
 }

@@ -11,6 +11,7 @@ import { beep, vibrate } from './lib/sound.js'
 import { t, dateLocale, instrFor, exerciseNameFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
+import { DESKTOP, desktop } from './desktop/platform.js'
 import Media, { Thumb } from './components/Media.jsx'
 import LineChart from './components/LineChart.jsx'
 import Stepper from './components/Stepper.jsx'
@@ -1543,7 +1544,8 @@ function PlanTools({ close }) {
       close()
       // Web: the browser's print dialog (→ Save as PDF). Mobile: the OS print flow via the
       // native Print plugin — Android WebView has no window.print(). Same printable HTML both ways.
-      if (MOBILE) printHtml(planPrintHTML(st, user?.name || ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
+      if (DESKTOP) desktop().printPlan(planPrintHTML(st, user?.name || '')).then(r => { if (!r.canceled) toast('План сохранён в PDF') }).catch(e => toast(e.message))
+      else if (MOBILE) printHtml(planPrintHTML(st, user?.name || ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
       else printPlan(st, user?.name || '')
     }} disabled={!hasRoutines}>{t('Print / Save as PDF')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A clean one-page-per-plan printout — no exercise ever splits across a page.')}</div>

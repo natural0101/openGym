@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { MOBILE } from './lib/mobile.js'
 import './index.css'
+import { DESKTOP } from './desktop/platform.js'
+import './desktop/desktop.css'
+
+if (DESKTOP) document.documentElement.dataset.desktop = 'true'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
@@ -12,6 +16,6 @@ createRoot(document.getElementById('root')).render(
 )
 
 // Not in the mobile build: the native shell already serves everything from disk.
-if (!MOBILE && 'serviceWorker' in navigator && location.protocol === 'https:') {
+if (!MOBILE && !DESKTOP && 'serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {})
 }

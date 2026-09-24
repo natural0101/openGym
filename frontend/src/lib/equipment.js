@@ -25,6 +25,7 @@ export function activeProfile(S) {
 export function exAvailable(S, ex) {
   const p = activeProfile(S)
   if (!p) return true
+  if (import.meta.env?.VITE_DESKTOP === '1' && p.id === 'home-equipment' && ex.id === '3666') return true
   if (!ex.eq || ex.eq === ALWAYS_AVAILABLE) return true
   return (p.equipment || []).includes(ex.eq)
 }
