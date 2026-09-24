@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import Icon from '../components/Icon.jsx'
+import DesktopWidgetBridge from './DesktopWidgetBridge.jsx'
 
 const links = [
   ['/home', 'house', 'Обзор'], ['/plan', 'calendar', 'Мой план'], ['/workout', 'dumbbell', 'Тренировка'],
@@ -26,13 +27,14 @@ export default function DesktopShell() {
   const go = route => { setSearching(false); nav(route) }
   const choices = [...links, ['/settings', 'gear', 'Настройки'], ...S.routines.map(r => ['/plan/r/' + r.id, 'dumbbell', r.name])]
     .filter(([, , label]) => label.toLowerCase().includes(query.toLowerCase()))
-  const status = save.status === 'saving' ? 'Сохраняю…' : save.status === 'error' ? 'Ошибка сохранения' : save.status === 'loading' ? 'Открываю данные…' : 'Сохранено на компьютере'
+  const status = save.status === 'saving' ? 'Сохраняю…' : save.status === 'error' ? 'Ошибка сохранения' : save.status === 'loading' ? 'Открываю данные…' : 'Всё сохранено'
   return <>
+    <DesktopWidgetBridge />
     <a className="desk-skip" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('app')?.focus() }}>Перейти к содержимому</a>
     <aside className="desk-sidebar">
       <button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — обзор"><span className="desk-mark"><Icon name="dumbbell" /></span><span>openGym</span></button>
-      <button className="desk-search" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Быстрый переход</span><kbd>Ctrl K</kbd></button>
-      <div className="desk-nav-label">Рабочее пространство</div>
+      <button className="desk-search" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
+      <div className="desk-nav-label">Твой зал</div>
       <nav aria-label="Основная навигация">{links.map(([path, icon, label]) => <button key={path} aria-label={label} title={label} className={'desk-nav-item' + (loc.pathname.startsWith(path) ? ' selected' : '')} aria-current={loc.pathname.startsWith(path) ? 'page' : undefined} onClick={() => nav(path)}><Icon name={icon} /><span>{label}</span>{path === '/workout' && S.active && <i className="desk-live" />}</button>)}</nav>
         <div className="desk-sidebar-routines"><div className="desk-nav-label">Программы</div>{S.routines.map(r => <button key={r.id} title={r.name} onClick={() => nav('/plan/r/' + r.id)}><Icon name="dumbbell" /><span>{r.name}</span></button>)}</div>
       <div className="desk-sidebar-bottom">

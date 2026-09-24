@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.0.0-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.1.0-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. Choose **Подобрать домашний план** → **Гантели + дорожка**, inspect the routines and add them. This creates three strength routines and an optional walking session. Only unassigned Monday/Wednesday/Friday slots are filled; existing routines and history stay intact. The template is a starting point, not an individualized prescription. Choose your own comfortable dumbbell weight; change exercises and days in **Мой план**.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -41,3 +41,14 @@ The installer is written to `release/`. Electron renderer access is isolated thr
 ## Licenses
 
 The application remains AGPL-3.0-or-later. Upstream attribution and LICENSE/NOTICE.md are retained. Exercise media is not bundled in the installer or source: the optional downloader fetches the pinned upstream dataset revision `7455efae41b330c265e7cd4b78dfa848e7ce5ebd`. Media rights are separate from the code and metadata licenses; see NOTICE.md. The offline files live only in the user's data directory.
+
+
+## Desktop companions
+
+The home screen includes Burger and Cake. Select either character; your choice is saved. The companion reacts to completed sets and shows the real rest/work timer. **Разминка · 2 минуты** starts a preparation timer without writing a workout record.
+
+**На рабочий стол** opens the native desktop widget. Drag its header to reposition it. The arrow button pins/unpins it above other windows, clicking the mascot changes the companion, and the main button returns to openGym. While a rest timer runs the secondary button skips that rest. Closing the main window leaves a visible widget running; use the openGym tray menu → **Выйти** to quit everything. The widget's visibility, position and pin preference are restored on the next app launch. The application does not automatically start with Windows.
+
+`widget-preferences.json` stores window preferences separately from training data. Widget IPC only exposes a small fixed action list; all training edits still go through the main window/store.
+
+Manrope and Unbounded are bundled under their SIL Open Font Licenses in `frontend/public/fonts`. Burger and Cake were generated for this project; see `docs/DESKTOP_ASSETS.md`.

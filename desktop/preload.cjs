@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('openGymDesktop', Object.freeze({
+  showWidget: () => ipcRenderer.invoke('desktop:widget-show'),
+  updateWidget: value => ipcRenderer.invoke('desktop:widget-update', value),
+  onWidgetAction: fn => { const listener = (_event, action) => fn(action); ipcRenderer.on('desktop:widget-action', listener); return () => ipcRenderer.removeListener('desktop:widget-action', listener) },
   load: () => ipcRenderer.invoke('desktop:load'),
   save: state => ipcRenderer.invoke('desktop:save', state),
   exportBackup: () => ipcRenderer.invoke('desktop:export'),

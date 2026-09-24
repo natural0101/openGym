@@ -5,6 +5,7 @@ import { MOBILE } from './lib/mobile.js'
 import './index.css'
 import { DESKTOP } from './desktop/platform.js'
 import './desktop/desktop.css'
+import './desktop/neo.css'
 
 if (DESKTOP) document.documentElement.dataset.desktop = 'true'
 

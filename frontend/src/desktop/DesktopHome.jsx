@@ -6,6 +6,7 @@ import { effectiveRoutines, setsDoneActive } from '../lib/history.js'
 import { todayISO, isoOf } from '../lib/format.js'
 import { bwSheet, dayOverrideSheet, startFlow } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import TrainingBuddy from './TrainingBuddy.jsx'
 import { EXIDX } from '../lib/exercises.js'
 import { HOME_PLANS, HOME_NAMES, buildHomePlan } from './home-plans.js'
 
@@ -48,25 +49,32 @@ export default function DesktopHome() {
     nav('/plan/r/' + id)
   }
   return <div className="workspace-home">
-    <div className="workspace-heading"><div><h1>Домашние тренировки</h1><p>Гантели и беговая дорожка</p></div><button className="btn" onClick={create}><Icon name="plus" />Новая программа</button></div>
+    <div className="workspace-heading"><div><span className="neo-kicker">openGym / дома</span><h1>Домашние<br />тренировки</h1><p>Гантели. Дорожка. Твой ритм.</p></div><div className="neo-heading-tools"><button className="neo-tool" title="Настройки" aria-label="Открыть настройки" onClick={() => nav('/settings')}><Icon name="gear" /></button><button className="neo-tool" title="Найти упражнение" aria-label="Найти упражнение" onClick={() => nav('/library')}><Icon name="magnifier" /></button><button className="btn primary neo-new" onClick={create}><Icon name="plus" />Новая программа</button></div></div>
     {S.active && <button className="workspace-resume" onClick={() => nav('/workout')}><Icon name="play" /><b>{S.active.name}</b><span>{setsDoneActive(S.active)} подходов выполнено</span><strong>Продолжить тренировку →</strong></button>}
+    <div className="home-board"><div className="home-programs">
     <div className="workspace-tabs" role="tablist" aria-label="Домашние тренировки">
       {[['programs', 'Программы'], ['week', 'Неделя'], ['recent', 'Последние занятия']].map(([id, text]) => <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{text}{id === 'programs' && <span>{S.routines.length}</span>}</button>)}
       <button className="workspace-template" onClick={openHomePlan}><Icon name="plus" />Домашний шаблон</button>
     </div>
     {tab === 'programs' && <section aria-label="Программы тренировок">
       {S.routines.length ? <>
-        <div className="routine-table-head"><span>Программа</span><span>Расписание</span><span>Последнее занятие</span><span /></div>
-        {S.routines.map(r => {
+        <div className="routine-folders">
+        {S.routines.map((r, index) => {
           const days = [1,2,3,4,5,6,0].filter(d => [].concat(S.week[d] || []).includes(r.id))
+          const cardio = r.ex.length > 0 && r.ex.every(e => e.mode === 'cardio')
           const last = [...S.workouts].filter(w => w.routineIds?.includes(r.id)).sort((a,b) => b.d.localeCompare(a.d))[0]
-          return <div className="routine-table-row" key={r.id}>
-            <button className="routine-table-name" onClick={() => nav('/plan/r/' + r.id)}><Icon name={r.ex.every(e => e.mode === 'cardio') && r.ex.length ? 'figureRun' : 'dumbbell'} /><div><b>{r.name}</b><small>{r.ex.length} упражнений{r.ex.length ? ' · ' + r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).slice(0,2).join(', ') : ' · добавь упражнения'}</small></div></button>
-            <span className="routine-table-schedule">{days.length ? days.map(d => weekdays[d]).join(', ') : 'Без расписания'}</span>
-            <span className="routine-table-last">{last ? new Date(last.d + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Ещё не было'}</span>
-            <button className="routine-table-start" disabled={!r.ex.length || !!S.active} title={S.active ? 'Сначала заверши текущую тренировку' : undefined} onClick={() => startFlow([r.id])}><Icon name="play" />Начать</button>
-          </div>
+          return <article className="routine-folder" data-tone={['yellow','green','pink','violet'][index % 4]} key={r.id}>
+            <span className="folder-tab">{days.length ? days.map(d => weekdays[d]).join(' / ') : 'В любой день'}</span>
+            <div className="folder-face">
+              <button className="routine-folder-name" onClick={() => nav('/plan/r/' + r.id)}>
+                <span className="folder-meta"><span className="folder-icon"><Icon name={cardio ? 'figureRun' : 'dumbbell'} /></span><span>{r.ex.length} {r.ex.length === 1 ? 'упражнение' : r.ex.length > 1 && r.ex.length < 5 ? 'упражнения' : 'упражнений'}<small>{cardio ? 'Кардио' : 'Силовая тренировка'}</small></span><Icon name="arrowRight" /></span>
+                <h2>{r.name}</h2><p>{r.ex.length ? r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).slice(0,3).join(' · ') : 'Добавь упражнения, чтобы начать'}</p>
+              </button>
+              <div className="folder-bottom"><span>{last ? 'Последняя: ' + new Date(last.d + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Ещё не начата'}</span><button className="routine-folder-start" disabled={!r.ex.length || !!S.active} title={S.active ? 'Сначала заверши текущую тренировку' : undefined} onClick={() => startFlow([r.id])}><Icon name="play" />Начать</button></div>
+            </div>
+          </article>
         })}
+        </div>
         <button className="workspace-add-row" onClick={create}><Icon name="plus" />Добавить программу</button>
       </> : <div className="workspace-empty"><h2>Пока нет программ</h2><p>Добавь готовый план для гантелей и дорожки.<br />Упражнения, нагрузку и дни можно изменить.</p><button className="btn primary" onClick={openHomePlan}>Подобрать домашний план</button><button className="btn ghost" onClick={() => nav('/workout')}>Начать без плана</button></div>}
       <div className="workspace-help-row"><Icon name="info" /><span>Выбирай комфортный вес гантелей. Перед силовой частью — спокойная ходьба и разминка.</span></div>
@@ -76,6 +84,7 @@ export default function DesktopHome() {
       return <button key={iso} onClick={() => dayOverrideSheet(iso)} className={iso === today ? 'today' : ''}><span className="week-date">{d.toLocaleDateString('ru-RU', { weekday:'short' })}<b>{d.getDate()}</b></span><span>{plans.length ? plans.map(r => r.name).join(' + ') : 'Отдых'}</span><small>{done ? 'Выполнено' : iso === today ? 'Сегодня' : ''}</small><Icon name={done ? 'check' : 'chevronRight'} /></button>
     })}<button className="workspace-add-row" onClick={() => nav('/plan')}>Изменить недельное расписание<Icon name="arrowRight" /></button></section>}
     {tab === 'recent' && <section>{recent.length ? recent.map(w => <button key={w.id} className="workspace-history-row" onClick={() => nav('/history')}><Icon name="checkCircle" /><b>{w.name}</b><span>{new Date(w.d+'T12:00:00').toLocaleDateString('ru-RU')}</span><Icon name="chevronRight" /></button>) : <div className="workspace-empty"><h2>Занятий ещё нет</h2><p>Завершённые тренировки появятся здесь.</p></div>}</section>}
-    <footer className="workspace-footer"><span>Данные на этом компьютере</span><button onClick={() => bwSheet()}><Icon name="scale" />Записать вес</button><button onClick={() => nav('/settings')}>Резервные копии<Icon name="arrowRight" /></button></footer>
+    </div><TrainingBuddy /></div>
+    <footer className="workspace-footer"><span><Icon name="lock" /> Только на твоём компьютере</span><button onClick={() => bwSheet()}><Icon name="scale" />Записать вес</button><button onClick={() => nav('/settings')}>Резервные копии<Icon name="arrowRight" /></button></footer>
   </div>
 }

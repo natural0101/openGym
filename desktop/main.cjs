@@ -1,17 +1,20 @@
-const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker } = require('electron')
+const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker, screen, Tray, nativeImage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { pathToFileURL } = require('node:url')
 const { createStorage, validateState, MAX_BYTES } = require('./storage.cjs')
 const { createMedia } = require('./media.cjs')
+const { createWidget } = require('./widget.cjs')
 
 // Test runs use their own directory and never touch a person's training history.
 if (process.env.OPENGYM_TEST_DATA && !app.isPackaged) app.setPath('userData', path.resolve(process.env.OPENGYM_TEST_DATA))
 protocol.registerSchemesAsPrivileged([{ scheme: 'opengym', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }])
 const single = app.requestSingleInstanceLock()
 if (!single) { app.quit() } else {
-  let win, storage, media, closing = false, awake = null
+  let win, storage, media, closing = false, awake = null, widgetController = null, quitting = false
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
+  app.on('before-quit', () => { quitting = true })
+  app.on('will-quit', () => widgetController?.dispose())
   app.on('window-all-closed', () => app.quit())
   app.whenReady().then(async () => {
     app.setAppUserModelId('com.natural0101.opengym')
@@ -97,6 +100,7 @@ if (!single) { app.quit() } else {
       icon: path.join(dist, 'icon-512.png'), show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
     })
+    widgetController = createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, mainWindow: win, dist })
     win.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https:\/\/(github\.com|opengym\.duarte-santos\.ch)\//.test(url)) void shell.openExternal(url)
       return { action: 'deny' }
@@ -108,11 +112,12 @@ if (!single) { app.quit() } else {
       if (closing) return
       event.preventDefault()
       // Renderer saves are immediate IPC calls, not a delayed debounce; flush queued disk writes.
-      storage.flush().then(() => { closing = true; media.stop(); win.close() }).catch(async error => {
+      Promise.all([storage.flush(), widgetController.flush()]).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
         if (response === 1) { closing = true; win.close() }
       })
     })
     await win.loadURL('opengym://app/index.html')
+    await widgetController.restore()
   }).catch(error => { dialog.showErrorBox('openGym — ошибка запуска', error.message); app.quit() })
 }
