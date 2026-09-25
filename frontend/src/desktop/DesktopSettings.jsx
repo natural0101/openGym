@@ -50,7 +50,7 @@ export default function DesktopSettings() {
         {media?.state === 'downloading' ? <button className="btn" onClick={() => run(() => desktop().pauseMedia())}>Приостановить</button> : media?.state !== 'ready' ? <button className="btn" disabled={!media || busy} onClick={() => run(async () => setMedia(await desktop().downloadMedia()))}><Icon name="download" />{media?.completed ? 'Продолжить загрузку' : 'Скачать медиа · ~140 МБ'}</button> : <div className="desk-ready"><Icon name="checkCircle" />Библиотека доступна без интернета</div>}
         <p className="desk-media-note">Медиа загружается из exercises-dataset на GitHub. Это сторонний контент со своими условиями использования, отдельно от лицензии openGym.</p>
       </section>
-      <section className="desk-about"><span className="desk-mark"><Icon name="dumbbell" /></span><div><b>openGym для Windows</b><p>На основе openGym 1.3.8 · AGPL-3.0</p><a href="https://github.com/natural0101/openGym" target="_blank" rel="noreferrer">Исходный код<Icon name="arrowRight" /></a></div></section>
+      <section className="desk-about"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><div><b>openGym для Windows</b><p>На основе openGym 1.3.8 · AGPL-3.0</p><a href="https://github.com/natural0101/openGym" target="_blank" rel="noreferrer">Исходный код<Icon name="arrowRight" /></a></div></section>
     </div></div>
   </div>
 }

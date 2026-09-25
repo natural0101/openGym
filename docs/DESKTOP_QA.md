@@ -31,3 +31,11 @@ Screenshots cover empty state, home routines, schedule, workout, plan, library, 
 - No Windows autostart, automatic updater, cloud sync or AI coach. Timers run while the app is running; timer continuation across full application restart is not promised.
 - Russian names cover the home exercises; much of the upstream catalogue retains English names.
 - Exercise media licensing is separate; see NOTICE.md. Same-disk backups do not protect against disk loss.
+
+## 1.1.1 — Rubik and desktop identity
+
+On 2026-09-25 the user requested Rubik everywhere and a replacement application logo/icon. Rubik now covers desktop headings, body text, controls, keyboard hints, paths and native widget text. The local variable font includes Cyrillic and its OFL license. Earlier Manrope/Unbounded assets were removed.
+
+A project-native SVG dumbbell on a yellow tile supplies the sidebar, About section and widget brand. A matching PNG supplies the native window/tray; a nine-resolution ICO (16–256px) supplies the EXE, installer and uninstaller. The embedded icon was extracted from the installed executable and visually inspected. Original upstream web icons are retained.
+
+Verification: the Rubik smoke run passed with no renderer errors or external requests. After the logo change, `npm run dist` and silent installation exited 0. A focused check of the installed 1.1.1 executable verified actual custom Rubik rendering through Chromium platform-font inspection, every visible text element across six sections, local logos in app/widget, no horizontal overflow and no widget vertical overflow. The complete training state deep-equaled the pre-upgrade snapshot. Installed home/widget screenshots were inspected; no renderer errors occurred. Host reboot and Windows shell icon-cache refresh were not tested.

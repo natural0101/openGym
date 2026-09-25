@@ -97,7 +97,7 @@ if (!single) { app.quit() } else {
     Menu.setApplicationMenu(null)
     win = new BrowserWindow({
       width: 1380, height: 920, minWidth: 800, minHeight: 600, title: 'openGym', backgroundColor: '#fafafa',
-      icon: path.join(dist, 'icon-512.png'), show: false,
+      icon: path.join(dist, 'desktop-icon-512.png'), show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
     })
     widgetController = createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, mainWindow: win, dist })

@@ -15,7 +15,7 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
   const publish = () => { if (widget && !widget.isDestroyed()) widget.webContents.send('widget:state', { ...state, pinned: prefs.pinned }) }
   const ensureTray = () => {
     if (tray) return
-    tray = new Tray(nativeImage.createFromPath(path.join(dist, 'icon-512.png')).resize({ width: 20, height: 20 }))
+    tray = new Tray(nativeImage.createFromPath(path.join(dist, 'desktop-icon-512.png')).resize({ width: 20, height: 20 }))
     tray.setToolTip('openGym — домашние тренировки')
     tray.on('double-click', presentMain)
     tray.setContextMenu(Menu.buildFromTemplate([

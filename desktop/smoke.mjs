@@ -25,11 +25,11 @@ try {
   await page.context().setOffline(true)
   await noOverflow(); await shot('01-home-empty')
   await page.evaluate(() => document.fonts.ready)
-  assert(await page.evaluate(() => document.fonts.check('600 16px Manrope', 'Тренировка') && document.fonts.check('700 24px Unbounded', 'Домашние')))
+  assert(await page.evaluate(() => document.fonts.check('600 16px Rubik', 'Тренировка') && document.fonts.check('700 24px Rubik', 'Домашние')))
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('DOM.enable'); await cdp.send('CSS.enable')
   const { root } = await cdp.send('DOM.getDocument')
-  for (const [selector, family] of [['h1', 'Unbounded'], ['.desk-nav-item', 'Manrope']]) {
+  for (const [selector, family] of [['h1', 'Rubik'], ['.desk-nav-item', 'Rubik']]) {
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector })
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId })
     assert(fonts.some(f => f.familyName.includes(family) && f.isCustomFont), family + ' must actually render text')

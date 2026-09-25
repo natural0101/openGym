@@ -1,7 +1,7 @@
 {
   "name": "opengym-desktop",
   "productName": "openGym",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Private, offline home training for Windows",
   "author": "natural0101 and openGym contributors",
   "license": "AGPL-3.0-or-later",
@@ -35,7 +35,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "frontend/public/icon-512.png",
+      "icon": "desktop/icon.ico",
       "signAndEditExecutable": true
     },
     "nsis": {
@@ -45,7 +45,9 @@
       "createDesktopShortcut": true,
       "shortcutName": "openGym",
       "deleteAppDataOnUninstall": false,
-      "artifactName": "openGym-Setup-${version}-${arch}.${ext}"
+      "artifactName": "openGym-Setup-${version}-${arch}.${ext}",
+      "installerIcon": "desktop/icon.ico",
+      "uninstallerIcon": "desktop/icon.ico"
     }
   }
 }

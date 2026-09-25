@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.1.0-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.1.1-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. Choose **Подобрать домашний план** → **Гантели + дорожка**, inspect the routines and add them. This creates three strength routines and an optional walking session. Only unassigned Monday/Wednesday/Friday slots are filled; existing routines and history stay intact. The template is a starting point, not an individualized prescription. Choose your own comfortable dumbbell weight; change exercises and days in **Мой план**.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -51,4 +51,4 @@ The home screen includes Burger and Cake. Select either character; your choice i
 
 `widget-preferences.json` stores window preferences separately from training data. Widget IPC only exposes a small fixed action list; all training edits still go through the main window/store.
 
-Manrope and Unbounded are bundled under their SIL Open Font Licenses in `frontend/public/fonts`. Burger and Cake were generated for this project; see `docs/DESKTOP_ASSETS.md`.
+Rubik is bundled under its SIL Open Font License in `frontend/public/fonts`. Burger and Cake were generated for this project; see `docs/DESKTOP_ASSETS.md`.

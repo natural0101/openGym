@@ -1,6 +1,5 @@
 /* Reference-led desktop skin. Local Cyrillic fonts; no external font requests. */
-@font-face{font-family:Manrope;src:url('/fonts/Manrope-Variable.ttf') format('truetype');font-style:normal;font-weight:200 800;font-display:swap}
-@font-face{font-family:Unbounded;src:url('/fonts/Unbounded-Variable.ttf') format('truetype');font-style:normal;font-weight:200 900;font-display:swap}
+@font-face{font-family:Rubik;src:url('/fonts/Rubik-Variable.ttf') format('truetype');font-style:normal;font-weight:300 900;font-display:swap}
 :root[data-desktop="true"],:root[data-desktop="true"][data-theme="light"] {
  --bg:#fffdf5;--bg-el:#fffdf5;--surface:#fffefa;--surface-2:#f0ece3;--surface-3:#e5dfd3;
  --label:#171711;--label-2:#52514b;--label-3:#67645b;--label-4:#a6a295;--sep:#24241e;--sep-op:#24241e;
@@ -15,11 +14,11 @@
  --acc:#eadfbd;--acc-2:#d8c799;--on-acc:#242129;--green:#b0df71;--red:#ff8292;
  --neo-canvas:#211e26;--desk-sidebar:#302c36;
 }
-:root[data-desktop="true"] body {font-family:Manrope,sans-serif;font-size:14px;line-height:1.5;letter-spacing:0;font-weight:450;font-synthesis:none;background:var(--neo-canvas)}
-:root[data-desktop="true"] button,:root[data-desktop="true"] input,:root[data-desktop="true"] select,:root[data-desktop="true"] textarea {font-family:Manrope,sans-serif;font-synthesis:none}
+:root[data-desktop="true"] body {font-family:Rubik,sans-serif;font-size:14px;line-height:1.5;letter-spacing:0;font-weight:450;font-synthesis:none;background:var(--neo-canvas)}
+:root[data-desktop="true"] button,:root[data-desktop="true"] input,:root[data-desktop="true"] select,:root[data-desktop="true"] textarea {font-family:Rubik,sans-serif;font-synthesis:none}
 :root[data-desktop="true"] #app {margin:82px 24px 28px calc(var(--desk-width) + 24px);padding:30px 30px 24px;min-height:calc(100dvh - 110px);max-width:none;border:2px solid var(--neo-ink);border-radius:16px;background:var(--bg);box-shadow:6px 6px 0 var(--neo-ink)}
 :root[data-desktop="true"] .narrow {max-width:1080px}
-:root[data-desktop="true"] h1,:root[data-desktop="true"] .desk-page-heading h1 {font-family:Unbounded,Manrope,sans-serif;font-size:27px;font-weight:650;line-height:1.3;letter-spacing:-.9px}
+:root[data-desktop="true"] h1,:root[data-desktop="true"] .desk-page-heading h1 {font-family:Rubik,sans-serif;font-size:27px;font-weight:650;line-height:1.3;letter-spacing:-.9px}
 :root[data-desktop="true"] .hdr h1 {font-size:26px;line-height:1.3}
 :root[data-desktop="true"] :focus-visible {outline:3px solid #7950d5;outline-offset:5px}
 :root[data-desktop="true"] .btn {border:2px solid var(--neo-ink);border-radius:7px;padding:8px 14px;font-size:13px;font-weight:650;background:var(--surface);box-shadow:3px 3px 0 var(--neo-ink);min-height:39px;transition:transform .12s,box-shadow .12s}
@@ -41,12 +40,13 @@
 :root[data-desktop="true"] .lrow-i {border:1px solid var(--neo-ink);background:var(--neo-violet);color:var(--neo-ink)}
 :root[data-desktop="true"] .lrow-t {font-weight:550}
 :root[data-desktop="true"] .center,:root[data-desktop="true"] .sheet {background:var(--bg);border:2px solid var(--neo-ink);border-radius:12px;box-shadow:7px 7px 0 var(--neo-ink)}
-:root[data-desktop="true"] .sheet h3,:root[data-desktop="true"] .center h3 {font-family:Unbounded,Manrope,sans-serif;font-size:20px;font-weight:600;line-height:1.4}
+:root[data-desktop="true"] .sheet h3,:root[data-desktop="true"] .center h3 {font-family:Rubik,sans-serif;font-size:20px;font-weight:600;line-height:1.4}
 :root[data-desktop="true"] #timer {border:2px solid var(--neo-ink);background:var(--neo-yellow);color:var(--neo-ink);box-shadow:4px 4px 0 var(--neo-ink);border-radius:9px;--label:var(--neo-ink);--label-2:#49452a;--surface:#fff8d8;--surface-2:#f8edb4}
 :root[data-desktop="true"] #toast {border:2px solid var(--neo-ink);background:var(--surface);color:var(--label);box-shadow:4px 4px 0 var(--neo-ink);font-weight:600}
 .desk-sidebar {padding:23px 15px 0;border-right:2px solid var(--neo-ink);background:var(--desk-sidebar)}
-.desk-brand {font-family:Unbounded,Manrope,sans-serif;font-size:17px;font-weight:700;gap:11px;padding:0 1px 28px;letter-spacing:-.6px}
-.desk-mark {background:var(--neo-yellow);color:var(--neo-ink);border:2px solid var(--neo-ink);border-radius:7px;box-shadow:3px 3px 0 var(--neo-ink);width:35px;height:35px;font-size:24px}
+.desk-brand {font-family:Rubik,sans-serif;font-size:17px;font-weight:700;gap:11px;padding:0 1px 28px;letter-spacing:-.6px}
+.desk-mark {background:transparent;border:0;box-shadow:none;width:38px;height:38px;border-radius:0;flex:none}
+.desk-mark img {display:block;width:100%;height:100%}
 .desk-search {border:1.5px solid var(--neo-ink);background:var(--surface);padding:10px 8px;color:var(--label);margin-bottom:30px;font-size:11px}
 .desk-nav-label {font-size:11px;font-weight:600;color:var(--label-3);padding:0 9px;margin-bottom:9px}
 .desk-nav-item {border:1.5px solid transparent;min-height:42px;margin-bottom:7px;padding:9px 11px;font-size:13px;color:var(--label);gap:11px}
@@ -70,7 +70,7 @@
 .workspace-home {max-width:1400px}
 .workspace-heading {align-items:center;margin:0 0 28px;gap:20px}
 .neo-kicker {display:block;font-size:11px;font-weight:750;margin-bottom:11px;letter-spacing:.8px;text-transform:uppercase}
-:root[data-desktop="true"] .workspace-heading h1 {font-family:Unbounded,Manrope,sans-serif;font-weight:750;font-size:34px;line-height:1.18;letter-spacing:-1.4px}
+:root[data-desktop="true"] .workspace-heading h1 {font-family:Rubik,sans-serif;font-weight:750;font-size:34px;line-height:1.18;letter-spacing:-1.4px}
 .workspace-heading p {font-size:13px;color:var(--label-2);margin-top:12px}
 .neo-heading-tools {display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .neo-tool {display:grid;place-items:center;border:2px solid var(--neo-ink);box-shadow:3px 3px 0 var(--neo-ink);border-radius:7px;background:var(--surface);width:40px;height:40px;font-size:22px}
@@ -94,7 +94,7 @@
 .folder-meta small {display:block;margin-top:2px;font-weight:450;font-size:10px;color:var(--label-2)}
 .folder-meta>.icn {margin-left:auto;font-size:17px}
 .folder-icon {display:grid;place-items:center;background:var(--folder-color);border:2px solid var(--neo-ink);border-radius:6px;color:var(--neo-ink);width:44px;height:44px;font-size:27px;box-shadow:2px 2px 0 var(--neo-ink)}
-.routine-folder-name h2 {font-family:Manrope,sans-serif;font-size:18px;line-height:1.4;font-weight:800;letter-spacing:-.4px;min-height:25px}
+.routine-folder-name h2 {font-family:Rubik,sans-serif;font-size:18px;line-height:1.4;font-weight:800;letter-spacing:-.4px;min-height:25px}
 .routine-folder-name p {font-size:11px;line-height:1.6;color:var(--label-2);margin-top:7px;min-height:36px}
 .folder-bottom {display:flex;align-items:center;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1.5px solid var(--neo-ink);background:color-mix(in srgb,var(--folder-color) 32%,var(--surface))}
 .folder-bottom>span {font-size:10px;color:var(--label-2)}
@@ -130,7 +130,7 @@
 :root[data-desktop="true"] .wprog {height:10px;border:1.5px solid var(--neo-ink);border-radius:5px;background:var(--surface)}
 :root[data-desktop="true"] .wprog>i {background:var(--neo-green)}
 :root[data-desktop="true"] .workout-swipe-surface>.exmedia {border:2px solid var(--neo-ink);box-shadow:4px 4px 0 var(--neo-ink);border-radius:9px!important}
-:root[data-desktop="true"] .workout-swipe-surface>.row.between>div:first-child {font-family:Manrope,sans-serif;font-weight:800!important;font-size:21px!important}
+:root[data-desktop="true"] .workout-swipe-surface>.row.between>div:first-child {font-family:Rubik,sans-serif;font-weight:800!important;font-size:21px!important}
 :root[data-desktop="true"] .stp {border:1.5px solid var(--neo-ink);background:var(--surface);border-radius:7px}
 :root[data-desktop="true"] .ck {border:2px solid var(--neo-ink)}
 :root[data-desktop="true"] .ck.on {background:var(--neo-green);color:var(--neo-ink)}
@@ -152,7 +152,7 @@
 .training-buddy {border:2px solid var(--neo-ink);box-shadow:5px 5px 0 var(--neo-ink);border-radius:12px;background:var(--neo-pink);color:var(--neo-ink);padding:18px 16px;overflow:hidden}
 .buddy-label {display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-bottom:11px}
 .buddy-online {width:9px;height:9px;background:var(--neo-green);border:1.5px solid var(--neo-ink);border-radius:50%}
-.training-buddy h2 {font-family:Unbounded,Manrope,sans-serif;font-size:17px;font-weight:650;line-height:1.35;letter-spacing:-.6px;min-height:46px}
+.training-buddy h2 {font-family:Rubik,sans-serif;font-size:17px;font-weight:650;line-height:1.35;letter-spacing:-.6px;min-height:46px}
 .buddy-characters {display:flex;align-items:end;gap:6px;margin:8px -8px 18px}
 .buddy-pick {min-width:0;flex:1;display:flex;flex-direction:column;align-items:center;gap:9px;transition:transform .15s}
 .buddy-pick:hover {transform:rotate(-5deg) translateY(-4px)}
