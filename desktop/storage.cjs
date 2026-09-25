@@ -11,6 +11,18 @@ function validateState(value) {
   for (const [day, ids] of Object.entries(value.week)) if (!/^[0-6]$/.test(day) || !(typeof ids === 'string' || Array.isArray(ids) && ids.every(id => typeof id === 'string'))) throw new Error('Некорректный день в расписании.')
   for (const key of ['customEx', 'equipProfiles', 'favEx', 'gymCards']) if (value[key] != null && !Array.isArray(value[key])) throw new Error(`Некорректное поле ${key}.`)
   for (const key of ['dayPlan', 'exWeights', 'exNotes', 'barWeights', 'wc']) if (value[key] != null && (typeof value[key] !== 'object' || Array.isArray(value[key]))) throw new Error(`Некорректное поле ${key}.`)
+  if (value.desktopBurger != null) {
+    const g = value.desktopBurger
+    const day = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v + 'T12:00:00')) && new Date(v + 'T12:00:00').getDate() === Number(v.slice(-2))
+    if (g.version !== 1 || !Number.isInteger(g.remaining) || g.remaining < 0 || g.remaining > 150 || !day(g.day) || !day(g.startedDay)
+      || typeof g.won !== 'boolean' || g.won !== (g.remaining === 0)
+      || !Number.isInteger(g.sessions) || g.sessions < 0 || !Number.isInteger(g.misses) || g.misses < 0
+      || !Array.isArray(g.rewardedIds) || !g.rewardedIds.every(id => typeof id === 'string')
+      || !Array.isArray(g.completedDays) || !g.completedDays.every(day)
+      || !g.plan?.week || !g.plan?.days || Array.isArray(g.plan.week) || Array.isArray(g.plan.days)
+      || !Object.entries(g.plan.week).every(([key, v]) => /^[0-6]$/.test(key) && typeof v === 'boolean')
+      || !Object.entries(g.plan.days).every(([key, v]) => day(key) && typeof v === 'boolean')) throw new Error('Некорректный прогресс Бургера.')
+  }
   for (const r of value.routines) {
     if (!r || typeof r.id !== 'string' || typeof r.name !== 'string' || !Array.isArray(r.ex)) throw new Error('Некорректная программа.')
     for (const ex of r.ex) if (!ex || typeof ex.id !== 'string') throw new Error('Некорректное упражнение.')

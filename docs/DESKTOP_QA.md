@@ -39,3 +39,19 @@ On 2026-09-25 the user requested Rubik everywhere and a replacement application 
 A project-native SVG dumbbell on a yellow tile supplies the sidebar, About section and widget brand. A matching PNG supplies the native window/tray; a nine-resolution ICO (16–256px) supplies the EXE, installer and uninstaller. The embedded icon was extracted from the installed executable and visually inspected. Original upstream web icons are retained.
 
 Verification: the Rubik smoke run passed with no renderer errors or external requests. After the logo change, `npm run dist` and silent installation exited 0. A focused check of the installed 1.1.1 executable verified actual custom Rubik rendering through Chromium platform-font inspection, every visible text element across six sections, local logos in app/widget, no horizontal overflow and no widget vertical overflow. The complete training state deep-equaled the pre-upgrade snapshot. Installed home/widget screenshots were inspected; no renderer errors occurred. Host reboot and Windows shell icon-cache refresh were not tested.
+
+## 1.2.0 — Burger progress and the Windows desktop layer
+
+The widget is attached as a WS_CHILD window to the Explorer window containing SHELLDLL_DefView. Always-on-top and the pin action were removed, including migration of saved pin preferences. Koffi 3.3.1 calls Win32 from the main process; renderer privileges remain unchanged.
+
+Burger progress is stored with training data. Session completion and its reward are one persisted transaction. Empty sessions/backfills/imports cannot grant rewards; processed session IDs prevent duplicates. Calendar reconciliation uses the previously saved schedule, local calendar boundaries and explicit rest overrides; the update does not penalize pre-activation days. Victory at zero is terminal.
+
+Evidence on Windows 11:
+- Challenge tests: 7 PASS; desktop storage tests: 7 PASS, including malformed challenge rejection.
+- Relevant finish/backfill/adopt/restore regressions: 42 PASS.
+- Native application smoke: PASS, including actual finish 100 → 90 in the widget, persistence after restart, backup/restore, timers and existing training flows; zero renderer errors/external requests. Editor checks now await the rendered rows after navigation.
+- Isolated missed-day and victory scenarios: 105% growth and 0%/hidden Burger rendered correctly; victory assertion waits for the scale transition to finish.
+- Native desktop-layer check: real Explorer parent, WS_CHILD=true, WS_EX_TOPMOST=false, Electron alwaysOnTop=false. After Shell.MinimizeAll the widget remained visible and Win32 hit testing reached it. A normal covering BrowserWindow then received the hit instead. Shell windows were restored afterwards.
+- NSIS 1.2.0 install exited 0. Actual installed executable reported version 1.2.0 / packaged=true; native dependency loaded and the widget's real parent was the Explorer desktop. Main/widget rendered offline with no errors/overflow. Existing profile fields were unchanged except the new game state and save timestamp; initial game was 100%, zero misses.
+
+Limits: Windows reboot, Explorer restart/recovery, alternate shells, mixed-DPI monitor changes and other computers were not tested. Windows autostart remains off. Previous timer, unsigned installer and local-backup limitations still apply.

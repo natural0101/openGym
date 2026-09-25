@@ -62,3 +62,13 @@ test('missing primary recovers previous state; damaged recovery copies never loo
   for (const name of await fs.readdir(storage.backupDir)) await fs.writeFile(path.join(storage.backupDir, name), '{bad')
   await assert.rejects(createStorage(dir).read())
 })
+
+test('burger challenge rejects malformed calendar/progress before replacing saved data', async t => {
+  const { storage } = await setup(t)
+  const game = {version:1,remaining:100,startedDay:'2026-09-25',day:'2026-09-25',completedDays:[],rewardedIds:[],sessions:0,misses:0,won:false,plan:{week:{5:true},days:{}},last:null}
+  await storage.write({...state(1),desktopBurger:game})
+  for (const patch of [{day:'not-a-date'},{day:'2026-02-31'},{remaining:151},{remaining:0,won:false},{completedDays:'bad'},{plan:{week:{5:'yes'},days:{}}}]) {
+    assert.throws(()=>storage.write({...state(2),desktopBurger:{...game,...patch}}))
+  }
+  assert.equal((await storage.read()).state.desktopBurger.remaining,100)
+})

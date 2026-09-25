@@ -191,3 +191,11 @@
 @media(max-width:1250px) and (min-width:981px){.home-board .workspace-template{width:100%;margin-left:0}}
 
 @media(max-width:980px){:root[data-desktop="true"][data-theme]{--desk-width:72px}}
+
+.buddy-art {position:relative;width:100%;display:flex;align-items:center;justify-content:center}
+.buddy-art img {transition:scale .65s ease;transform-origin:center bottom}
+.burger-victory {position:absolute;inset:0;display:grid;place-items:center;font-size:65px;color:#3b711b}
+.burger-rules {font-size:10px;line-height:1.5;text-align:center;margin:-7px 0 15px;font-weight:550}
+.training-buddy.compact .burger-rules {margin:10px 0 0}
+@media(max-width:980px){.home-board .burger-rules {grid-column:2}}
+@media(prefers-reduced-motion:reduce){.buddy-art img{transition:none}}

@@ -1,7 +1,7 @@
 {
   "name": "opengym-desktop",
   "productName": "openGym",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Private, offline home training for Windows",
   "author": "natural0101 and openGym contributors",
   "license": "AGPL-3.0-or-later",
@@ -17,8 +17,8 @@
   "devDependencies": {
     "electron": "44.4.5",
     "electron-builder": "26.15.3",
-    "playwright": "^1.58.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "playwright": "^1.58.2"
   },
   "build": {
     "appId": "com.natural0101.opengym",
@@ -49,5 +49,8 @@
       "installerIcon": "desktop/icon.ico",
       "uninstallerIcon": "desktop/icon.ico"
     }
+  },
+  "dependencies": {
+    "koffi": "3.3.1"
   }
 }

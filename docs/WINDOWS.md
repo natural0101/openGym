@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.1.1-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.2.0-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. Choose **Подобрать домашний план** → **Гантели + дорожка**, inspect the routines and add them. This creates three strength routines and an optional walking session. Only unassigned Monday/Wednesday/Friday slots are filled; existing routines and history stay intact. The template is a starting point, not an individualized prescription. Choose your own comfortable dumbbell weight; change exercises and days in **Мой план**.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -47,8 +47,16 @@ The application remains AGPL-3.0-or-later. Upstream attribution and LICENSE/NOTI
 
 The home screen includes Burger and Cake. Select either character; your choice is saved. The companion reacts to completed sets and shows the real rest/work timer. **Разминка · 2 минуты** starts a preparation timer without writing a workout record.
 
-**На рабочий стол** opens the native desktop widget. Drag its header to reposition it. The arrow button pins/unpins it above other windows, clicking the mascot changes the companion, and the main button returns to openGym. While a rest timer runs the secondary button skips that rest. Closing the main window leaves a visible widget running; use the openGym tray menu → **Выйти** to quit everything. The widget's visibility, position and pin preference are restored on the next app launch. The application does not automatically start with Windows.
+**На рабочий стол** opens the native desktop widget. Drag its header to reposition it. The widget is a child of the Windows Explorer desktop, behind normal application windows. There is no always-on-top mode. Clicking the mascot changes the companion; the main button returns to openGym. While a rest timer runs the secondary button skips that rest. Closing the main window leaves a visible widget running; use the openGym tray menu → **Выйти** to quit everything. The widget's visibility and position are restored on the next app launch. Old pin preferences are discarded. The application does not automatically start with Windows.
 
 `widget-preferences.json` stores window preferences separately from training data. Widget IPC only exposes a small fixed action list; all training edits still go through the main window/store.
 
 Rubik is bundled under its SIL Open Font License in `frontend/public/fonts`. Burger and Cake were generated for this project; see `docs/DESKTOP_ASSETS.md`.
+
+## Burger challenge
+
+Starts at 100% from the first launch of 1.2.0, without charging earlier missed days. Each newly finished session with completed work removes 10 percentage points; empty sessions, history imports and backfills do not grant progress. Each closed local calendar day with a scheduled routine and no completed session adds 5 points, capped at 150%. Rest days and explicit rest overrides do not count as misses. A day with several planned routines incurs at most one missed-day penalty. Session completion is counted on its local completion date.
+
+Burger visibly shrinks/grows in the app and desktop widget. At 0% it disappears and victory persists; later misses do not undo a completed challenge. This is a consistency game, independent of bodyweight data. The saved schedule is used to settle elapsed days on restart before any plan edits are applied. Progress is included in normal JSON backups.
+
+Developer checks: `npm --prefix frontend test -- src/desktop/burger-game.test.js`, `npm run test:desktop`, `npm run test:smoke`, `node desktop/burger-states-smoke.mjs`, `node desktop/desktop-host-smoke.mjs`. The last test briefly minimizes windows through the Windows shell and restores them afterwards to verify actual desktop hit testing and ordinary-window occlusion.

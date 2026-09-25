@@ -11,6 +11,7 @@ import { loadRemote, chooseLocal, forgetRemote, connect } from '../lib/remote.js
 import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
+import { reconcileBurger, snapshotBurgerPlan } from '../desktop/burger-game.js'
 import { DESKTOP, desktop, DESKTOP_DEFAULTS } from '../desktop/platform.js'
 
 const KEY = 'gym_state_v1'
@@ -343,12 +344,19 @@ export const useStore = create((set, get) => {
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
       const S = clone(get().S)
+      if (DESKTOP) reconcileBurger(S)
       mut(S)
+      if (DESKTOP) snapshotBurgerPlan(S)
       persist(S, push)
     },
     // A replace that is meant to reach the server (backup import, reset) is a deliberate
     // overwrite, not a change to merge: the push it arms goes without a baseRev.
-    replaceState(S, push = false) { if (push) forceNext = true; persist(clone(S), push) },
+    replaceState(S, push = false) {
+      if (push) forceNext = true
+      const next = clone(S)
+      if (DESKTOP) { reconcileBurger(next); snapshotBurgerPlan(next) }
+      persist(next, push)
+    },
 
     // Fires after the moments where losing local data would actually hurt — a workout just
     // logged, a routine just edited — not on every keystroke. No-op off mobile or with the
@@ -558,7 +566,9 @@ export const useStore = create((set, get) => {
             registerCustom(state.customEx)
             set({ S: state, user: null, config: { allow_guest: true, coach: { enabled: false } }, desktopRecovered: result.recovered })
             get().setGuest(true)
-            if (!result.state) persist(state, false)
+            const burgerChanged = reconcileBurger(state)
+            snapshotBurgerPlan(state)
+            if (!result.state || burgerChanged) persist(state, false)
             else set({ desktopSave: { status: 'saved' } })
           } catch (error) {
             get().setGuest(true)
