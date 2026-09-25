@@ -32,13 +32,29 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
     const width = 318, height = 540
     const x = Math.max(area.x, Math.min(Number.isFinite(prefs.x) ? prefs.x : area.x + area.width - width - 24, area.x + area.width - width))
     const y = Math.max(area.y, Math.min(Number.isFinite(prefs.y) ? prefs.y : area.y + area.height - height - 24, area.y + area.height - height))
-    widget = new BrowserWindow({ width, height, x, y, title: 'openGym · напарники', frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, alwaysOnTop: false, show: false,
+    widget = new BrowserWindow({ width, height, x, y, title: 'openGym · напарники', frame: false, thickFrame: false, hasShadow: false, transparent: false, backgroundColor: '#171711', resizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, alwaysOnTop: false, show: false,
       webPreferences: { preload: path.join(__dirname, 'widget-preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, spellcheck: false } })
     widget.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     widget.webContents.on('will-navigate', event => event.preventDefault())
     widget.on('move', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { if (!widget || widget.isDestroyed()) return; const [px,py] = widget.getPosition(); prefs.x = px; prefs.y = py; remember() }, 250) })
     widget.on('closed', () => { widget = null })
     await widget.loadURL('opengym://app/widget/index.html')
+    const contour = await widget.webContents.executeJavaScript(`document.fonts.ready.then(() => { const r = document.querySelector('.widget').getBoundingClientRect(); return { x:r.x, y:r.y, width:r.width, height:r.height } })`)
+    // Clip the native window itself. Transparent child-window margins otherwise
+    // expose Explorer's legacy wallpaper instead of the currently visible desktop.
+    const rounded = (x, y, width, height, radius) => {
+      const rows = []
+      for (let row = 0; row < height; row++) {
+        const distance = row < radius ? radius - row - .5 : row >= height - radius ? row - (height - radius) + .5 : 0
+        const inset = distance ? Math.ceil(radius - Math.sqrt(radius * radius - distance * distance)) : 0
+        const previous = rows.at(-1)
+        if (previous && previous.x === x + inset && previous.width === width - inset * 2) previous.height++
+        else rows.push({ x: x + inset, y: y + row, width: width - inset * 2, height: 1 })
+      }
+      return rows
+    }
+    const box = { x:Math.round(contour.x), y:Math.round(contour.y), width:Math.ceil(contour.width), height:Math.ceil(contour.height) }
+    widget.setShape([...rounded(box.x, box.y, box.width, box.height, 14), ...rounded(box.x + 5, box.y + 5, box.width, box.height, 14)])
     try { attachToDesktop(widget); publish() } catch (error) { widget.destroy(); prefs.visible = false; remember(); throw error }
   }
   const fromMain = event => event.sender === mainWindow.webContents && event.senderFrame === mainWindow.webContents.mainFrame

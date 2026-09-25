@@ -44,15 +44,24 @@ try {
  const pixelReport=JSON.parse(execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('desktop/capture-widget-screen.ps1')],{windowsHide:true,encoding:'utf8',env:{...process.env,GYM_CAPTURE_PATH:screenCapture,GYM_CAPTURE_RECT:[rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top].join(',')}}))
  assert(pixelReport.violetFraction > .25, 'Actual desktop pixels must contain the violet widget, not wallpaper')
  assert(pixelReport.yellowFraction > .025, 'Actual desktop pixels must contain the yellow action button')
+ const padding=40, surround=[rect.left-padding,rect.top-padding,rect.right-rect.left+padding*2,rect.bottom-rect.top+padding*2].join(',')
+ const beforePath=path.join(output,'desktop-without-widget.png'),afterPath=path.join(output,'desktop-widget-surroundings.png')
+ const captureSurrounding=file=>execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('desktop/capture-widget-screen.ps1')],{windowsHide:true,env:{...process.env,GYM_CAPTURE_PATH:file,GYM_CAPTURE_RECT:surround}})
+ await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('/widget/')).hide())
+ await page.waitForTimeout(150);captureSurrounding(beforePath)
+ await page.evaluate(()=>window.openGymDesktop.showWidget())
+ await page.waitForTimeout(150);captureSurrounding(afterPath)
+ const surroundings=JSON.parse(execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('desktop/compare-widget-surroundings.ps1')],{windowsHide:true,encoding:'utf8',env:{...process.env,GYM_BEFORE_PATH:beforePath,GYM_AFTER_PATH:afterPath,GYM_WIDGET_HANDLE:String(hwnd),GYM_CAPTURE_PADDING:String(padding)}}))
+ assert(surroundings.changedFraction<.001,'Static desktop pixels outside the widget must remain unchanged: '+JSON.stringify(surroundings))
  const coverHwnd=await app.evaluate(async({BrowserWindow},bounds)=>{
   const cover=new BrowserWindow({x:bounds.left,y:bounds.top,width:400,height:540,show:false,frame:false,backgroundColor:'#fffdf5'})
-  await cover.loadURL('data:text/html,<h1>Window above desktop widget</h1>');cover.show();cover.focus();global.gymCover=cover
+  await cover.loadURL('data:text/html,<h1>Window above desktop widget</h1>');cover.show();cover.moveTop();cover.focus();global.gymCover=cover
   return String(cover.getNativeWindowHandle().readBigUInt64LE())
  },rect)
  await page.waitForTimeout(300)
  assert.equal(String(ancestor(hit(point),2)),coverHwnd,'Ordinary application must cover widget')
  await app.evaluate(()=>global.gymCover.destroy())
  shell('UndoMinimizeALL');minimized=false
- const report={native,desktopVisible,ordinaryWindowCoversWidget:true,screenPixels:pixelReport}
+ const report={native,desktopVisible,ordinaryWindowCoversWidget:true,screenPixels:pixelReport,surroundings}
  console.log(JSON.stringify(report,null,2));await writeFile(path.join(output,'desktop-layer-report.json'),JSON.stringify(report,null,2))
 } finally {if(minimized)shell('UndoMinimizeALL');await app.close()}

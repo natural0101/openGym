@@ -65,3 +65,11 @@ Reproduced with a real CopyFromScreen capture: zero widget background pixels des
 `desktop-host-smoke.mjs` now captures actual screen pixels through `capture-widget-screen.ps1` and asserts the violet content and yellow action button are visible, in addition to desktop ownership, click hit testing, no topmost style and ordinary-window occlusion. Its isolated window position avoids overlap with an already running installed widget.
 
 Verified on installed 1.2.1: packaged=true; actual screen contained 48.03% violet background and 4.31% yellow button pixels. The screen capture was visually inspected. Native desktop parent, click hit test, normal-window occlusion and exact preservation of profile fields (except save timestamp) passed. NSIS install exited 0. No broad frontend retest was run for this native visibility-only fix. Existing reboot/Explorer recovery/mixed-DPI limits remain untested.
+
+## 1.2.2 — remove legacy wallpaper around the desktop widget
+
+The user screenshot exposed a second rendering issue: transparent margins of the Explorer child window showed legacy photographic wallpaper over the current animated pink desktop. The widget now has an opaque backing and a native window contour matching its rounded card and hard shadow. thickFrame=false removes the invisible native frame offset. The showInactive activation from 1.2.1 is retained.
+
+Verified in development and on installed 1.2.2 (packaged=true, NSIS exit 0): actual Windows screen capture contains the full card and current pink surroundings, without the old wallpaper rectangle. Outside the native contour, all 12,999 sampled pixels in the upper 65% match the hidden-widget baseline. The lower area contains animated wallpaper and was visually inspected instead of asserted pixel-identical. The new compare-widget-surroundings.ps1 makes this scope explicit.
+
+Native desktop ownership, no topmost flag, desktop click hit testing, ordinary-window occlusion, hide/show rendering and preservation of all existing training fields except the save timestamp passed. Evidence is in desktop/test-output/desktop-layer-report.json and the installed screen capture in outputs/openGym-Desktop-Verified.png (workspace outputs directory). No frontend behavior changed; prior reboot, Explorer recovery and mixed-DPI limits remain untested.
