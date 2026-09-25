@@ -55,3 +55,13 @@ Evidence on Windows 11:
 - NSIS 1.2.0 install exited 0. Actual installed executable reported version 1.2.0 / packaged=true; native dependency loaded and the widget's real parent was the Explorer desktop. Main/widget rendered offline with no errors/overflow. Existing profile fields were unchanged except the new game state and save timestamp; initial game was 100%, zero misses.
 
 Limits: Windows reboot, Explorer restart/recovery, alternate shells, mixed-DPI monitor changes and other computers were not tested. Windows autostart remains off. Previous timer, unsigned installer and local-backup limitations still apply.
+
+## 1.2.1 — correct a false-positive desktop rendering check
+
+The user's real desktop screenshot exposed a rendering failure missed by 1.2.0 QA: the HWND was visible and received hit tests, but its pixels were wallpaper. Chromium-only screenshots did not prove that Windows displayed its content. The earlier desktop visibility claim was therefore insufficient.
+
+Reproduced with a real CopyFromScreen capture: zero widget background pixels despite all native parent/hit tests passing. Removing transparency or disabling GPU acceleration did not fix it; those changes were discarded. Calling BrowserWindow.showInactive() before native reparenting activates Electron visibility and fixes the screen output. Native SWP_SHOWWINDOW alone was insufficient. The production fix is three lines (two comments and the showInactive call).
+
+`desktop-host-smoke.mjs` now captures actual screen pixels through `capture-widget-screen.ps1` and asserts the violet content and yellow action button are visible, in addition to desktop ownership, click hit testing, no topmost style and ordinary-window occlusion. Its isolated window position avoids overlap with an already running installed widget.
+
+Verified on installed 1.2.1: packaged=true; actual screen contained 48.03% violet background and 4.31% yellow button pixels. The screen capture was visually inspected. Native desktop parent, click hit test, normal-window occlusion and exact preservation of profile fields (except save timestamp) passed. NSIS install exited 0. No broad frontend retest was run for this native visibility-only fix. Existing reboot/Explorer recovery/mixed-DPI limits remain untested.

@@ -38,6 +38,9 @@ function attachToDesktop(win) {
   if (process.platform !== 'win32') throw new Error('Виджет рабочего стола доступен в Windows.')
   const w = windows(), host = desktopHost(), hwnd = hwndOf(win)
   if (!host) throw new Error('Рабочий стол Windows пока недоступен. Повтори открытие виджета.')
+  // Native SWP_SHOWWINDOW alone leaves Chromium hidden: hit tests pass but only
+  // wallpaper is painted. Activate Electron visibility before reparenting.
+  win.showInactive()
   const bounds = {}; w.rect(hwnd, bounds)
   const position = { x: bounds.left, y: bounds.top }; w.toClient(host, position)
   win.setAlwaysOnTop(false)

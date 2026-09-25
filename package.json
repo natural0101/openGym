@@ -1,7 +1,7 @@
 {
   "name": "opengym-desktop",
   "productName": "openGym",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Private, offline home training for Windows",
   "author": "natural0101 and openGym contributors",
   "license": "AGPL-3.0-or-later",

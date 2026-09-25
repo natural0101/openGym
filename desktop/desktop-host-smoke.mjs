@@ -18,7 +18,7 @@ const visible=u.func('bool __stdcall IsWindowVisible(void*)')
 const output=path.resolve('desktop/test-output')
 await mkdir(output,{recursive:true})
 const profile=await mkdtemp(path.join(output,'desktop-layer-'))
-await writeFile(path.join(profile,'widget-preferences.json'),JSON.stringify({visible:false,pinned:true}))
+await writeFile(path.join(profile,'widget-preferences.json'),JSON.stringify({visible:false,pinned:true,x:800,y:240}))
 const app=await electron.launch({args:['.'],env:{...process.env,OPENGYM_TEST_DATA:profile}})
 let minimized=false
 const shell=action=>execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',`(New-Object -ComObject Shell.Application).${action}()`],{windowsHide:true})
@@ -40,6 +40,10 @@ try {
  const desktopVisible={visible:visible(hwnd),receivesDesktopClicks:String(found)===String(hwnd)||isChild(hwnd,found)}
  assert.deepEqual(desktopVisible,{visible:true,receivesDesktopClicks:true})
  await widget.screenshot({path:path.join(output,'burger-desktop-layer.png')})
+ const screenCapture=path.join(output,'burger-desktop-screen.png')
+ const pixelReport=JSON.parse(execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('desktop/capture-widget-screen.ps1')],{windowsHide:true,encoding:'utf8',env:{...process.env,GYM_CAPTURE_PATH:screenCapture,GYM_CAPTURE_RECT:[rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top].join(',')}}))
+ assert(pixelReport.violetFraction > .25, 'Actual desktop pixels must contain the violet widget, not wallpaper')
+ assert(pixelReport.yellowFraction > .025, 'Actual desktop pixels must contain the yellow action button')
  const coverHwnd=await app.evaluate(async({BrowserWindow},bounds)=>{
   const cover=new BrowserWindow({x:bounds.left,y:bounds.top,width:400,height:540,show:false,frame:false,backgroundColor:'#fffdf5'})
   await cover.loadURL('data:text/html,<h1>Window above desktop widget</h1>');cover.show();cover.focus();global.gymCover=cover
@@ -49,6 +53,6 @@ try {
  assert.equal(String(ancestor(hit(point),2)),coverHwnd,'Ordinary application must cover widget')
  await app.evaluate(()=>global.gymCover.destroy())
  shell('UndoMinimizeALL');minimized=false
- const report={native,desktopVisible,ordinaryWindowCoversWidget:true}
+ const report={native,desktopVisible,ordinaryWindowCoversWidget:true,screenPixels:pixelReport}
  console.log(JSON.stringify(report,null,2));await writeFile(path.join(output,'desktop-layer-report.json'),JSON.stringify(report,null,2))
 } finally {if(minimized)shell('UndoMinimizeALL');await app.close()}
