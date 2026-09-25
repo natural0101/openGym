@@ -29,6 +29,7 @@ import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
+import DesktopWorkout from './desktop/DesktopWorkout.jsx'
 import Stats from './views/Stats.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
@@ -38,6 +39,10 @@ import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+import { DESKTOP } from './desktop/platform.js'
+import DesktopShell, { DesktopSaveError } from './desktop/DesktopShell.jsx'
+import DesktopHome from './desktop/DesktopHome.jsx'
+import DesktopSettings from './desktop/DesktopSettings.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -141,23 +146,26 @@ function Shell() {
     <>
       {/* keyed on the route: a view that throws is contained, and switching tabs
           re-mounts the boundary, so the tab bar is always a way out */}
-      <div id="app" className="vfade" key={loc.pathname}>
+      {DESKTOP && <DesktopShell />}
+      <div id="app" role="main" tabIndex={-1} data-view={loc.pathname.split('/')[1]} className="vfade" key={loc.pathname}>
         <ErrorBoundary>
+          {DESKTOP && <DesktopSaveError />}
           {authed && !needsMobileOnboarding && <SyncBanner />}
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes>
-              <Route path="/home" element={<Home />} />
+              <Route path="/home" element={DESKTOP ? <DesktopHome /> : <Home />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
-              <Route path="/workout" element={<Workout />} />
+              <Route path="/workout" element={DESKTOP ? <DesktopWorkout /> : <Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
               <Route path="/muscles" element={<Muscles />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={DESKTOP ? <DesktopSettings /> : <Settings />} />
+              {DESKTOP && <Route path="/settings/advanced" element={<Settings />} />}
               {/* The Coach screens gate themselves on the instance config; the routes exist
                   unconditionally so a deep link from a notification lands somewhere sane
                   rather than on the catch-all. */}
@@ -172,7 +180,7 @@ function Shell() {
         </ErrorBoundary>
       </div>
       {/* The chat owns the bottom of the screen: its composer sits where the tabs would be. */}
-      {loc.pathname !== '/coach' && <TabBar onStart={startFlow} />}
+      {!DESKTOP && loc.pathname !== '/coach' && <TabBar onStart={startFlow} />}
       <RestTimer />
       <Modals />
       <Toast />

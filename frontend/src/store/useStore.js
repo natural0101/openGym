@@ -11,6 +11,8 @@ import { loadRemote, chooseLocal, forgetRemote, connect } from '../lib/remote.js
 import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
+import { reconcileBurger, snapshotBurgerPlan } from '../desktop/burger-game.js'
+import { DESKTOP, desktop, DESKTOP_DEFAULTS } from '../desktop/platform.js'
 
 const KEY = 'gym_state_v1'
 // Where this device stands with the server: the revision it last adopted or pushed, and its own
@@ -90,7 +92,7 @@ function loadState() {
     const raw = localStorage.getItem(KEY)
     if (raw) return Object.assign(clone(DEF), JSON.parse(raw))
   } catch (e) { /* ignore */ }
-  return clone(DEF)
+  return Object.assign(clone(DEF), DESKTOP ? clone(DESKTOP_DEFAULTS) : {})
 }
 
 const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
@@ -106,6 +108,8 @@ export function restoredStateFor(local, remote, dirty = false) {
 }
 
 export const useStore = create((set, get) => {
+  let desktopBoot = null
+  let saveSequence = 0
   let pushTm = null
   let saveTm = null
   let toldTooLarge = false
@@ -145,8 +149,15 @@ export const useStore = create((set, get) => {
   const persist = (S, push = true, stamp = true) => {
     if (stamp) S._ts = Date.now()
     registerCustom(S.customEx)
-    localStorage.setItem(KEY, JSON.stringify(S))
+    try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) { if (!DESKTOP) throw e }
     set({ S })
+    if (DESKTOP) {
+      const sequence = ++saveSequence
+      set({ desktopSave: { status: 'saving' } })
+      desktop().save(S).then(result => {
+        if (sequence === saveSequence) set({ desktopSave: { status: 'saved', at: result.savedAt } })
+      }).catch(error => { if (sequence === saveSequence) set({ desktopSave: { status: 'error', message: error.message } }) })
+    }
     if (MOBILE) nativePersist()
     if (push && get().user) {
       // Before boot has pulled, the copy in hand may be older than the server's: a push now
@@ -314,6 +325,7 @@ export const useStore = create((set, get) => {
     S: (() => { const s = loadState(); registerCustom(s.customEx); return s })(),
     user: (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })(),
     ready: false,
+    desktopSave: { status: 'loading' },
     // Server sync as the banner sees it (components/SyncBanner.jsx). Only meaningful signed in.
     sync: { offline: false, pending: localStorage.getItem('gym_dirty') === '1', lastSynced: 0 },
     /* Instance capabilities from GET /api/config. `config.coach` is present only when the owner
@@ -332,12 +344,19 @@ export const useStore = create((set, get) => {
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
       const S = clone(get().S)
+      if (DESKTOP) reconcileBurger(S)
       mut(S)
+      if (DESKTOP) snapshotBurgerPlan(S)
       persist(S, push)
     },
     // A replace that is meant to reach the server (backup import, reset) is a deliberate
     // overwrite, not a change to merge: the push it arms goes without a baseRev.
-    replaceState(S, push = false) { if (push) forceNext = true; persist(clone(S), push) },
+    replaceState(S, push = false) {
+      if (push) forceNext = true
+      const next = clone(S)
+      if (DESKTOP) { reconcileBurger(next); snapshotBurgerPlan(next) }
+      persist(next, push)
+    },
 
     // Fires after the moments where losing local data would actually hurt — a workout just
     // logged, a routine just edited — not on every keystroke. No-op off mobile or with the
@@ -538,6 +557,27 @@ export const useStore = create((set, get) => {
 
     // Boot: ask the server who we are, then pull.
     async boot() {
+      if (DESKTOP) {
+        if (desktopBoot) return desktopBoot
+        desktopBoot = (async () => {
+          try {
+            const result = await desktop().load()
+            const state = Object.assign(clone(DEF), clone(DESKTOP_DEFAULTS), result.state || {})
+            registerCustom(state.customEx)
+            set({ S: state, user: null, config: { allow_guest: true, coach: { enabled: false } }, desktopRecovered: result.recovered })
+            get().setGuest(true)
+            const burgerChanged = reconcileBurger(state)
+            snapshotBurgerPlan(state)
+            if (!result.state || burgerChanged) persist(state, false)
+            else set({ desktopSave: { status: 'saved' } })
+          } catch (error) {
+            get().setGuest(true)
+            set({ user: null, desktopSave: { status: 'error', message: error.message } })
+          }
+          finishBoot()
+        })()
+        return desktopBoot
+      }
       // Mobile build: no backend by default — restore from the file mirror (the durable copy;
       // localStorage may have been evicted since the last run) and go straight in. Unless this
       // device was paired to a server ("connect to my server" mode, lib/remote.js), in which

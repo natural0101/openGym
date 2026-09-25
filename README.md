@@ -1,3 +1,5 @@
+> **Windows desktop edition (natural0101 fork).** Native installer, offline local storage, desktop navigation, backups and home plans for dumbbells + treadmill. See [Windows installation and build instructions](docs/WINDOWS.md). The original self-hosted version is documented below.
+
 <div align="center">
 
 <img src="assets/banner.png" alt="openGym" width="720">
