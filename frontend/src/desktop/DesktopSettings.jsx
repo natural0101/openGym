@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, DEF } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -11,6 +11,8 @@ import { openHomePlan } from './DesktopHome.jsx'
 export default function DesktopSettings() {
   const S = useStore(s => s.S), update = useStore(s => s.update), save = useStore(s => s.desktopSave)
   const nav = useNavigate(), toast = useUI(s => s.toast)
+  const nameRef = useRef(null), [nameDraft, setNameDraft] = useState(S.desktopName || '')
+  useEffect(() => { if (document.activeElement !== nameRef.current) setNameDraft(S.desktopName || '') }, [S.desktopName])
   const [info, setInfo] = useState(null), [media, setMedia] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState('')
   useEffect(() => {
     desktop().info().then(setInfo).catch(e => setError(e.message))
@@ -35,11 +37,11 @@ export default function DesktopSettings() {
     <div className="desk-settings-grid"><div>
       <section className="desk-panel"><h2>Отдых под упражнение</h2><p className="desk-helper">После записанного голосом подхода: приседания и тяги — 2:30, многосуставные на верх — 2:00, изолирующие — 1:15, корпус — 1:00. Это стартовые интервалы: готовность важнее секунд. Для дорожки таймер не запускается.</p><p className="desk-helper">Скажи «тяжело» — отдых будет дольше. «Упражнение закончил» включает перерыв перед следующим. Свой интервал можно сохранить в карточке упражнения.</p><button className="btn" onClick={() => nav('/library')}>Мои упражнения и интервалы</button></section>
       <section className="desk-panel"><div className="desk-panel-heading"><h2>Голосовой напарник</h2><Icon name="person" /></div><p className="desk-helper">Говори о выполненных подходах, исправляй записи и запускай отдых голосом. Один ключ Deepgram для разговора по-русски.</p><button className="btn" onClick={() => nav('/voice')}>Настроить голос и микрофон</button></section>
-      <section className="desk-panel"><div className="desk-panel-heading"><h2>Профиль и внешний вид</h2><Icon name="person" /></div><label className="desk-field">Как тебя называть<input className="input" maxLength={40} placeholder="Имя (необязательно)" value={S.desktopName || ''} onChange={e => update(s => { s.desktopName = e.target.value })} /></label>
-        <div className="desk-setting-row"><div><b>Тема</b><small>Светлая, тёмная или как в Windows</small></div><select aria-label="Тема" value={S.theme} onChange={e => update(s => { s.theme = e.target.value })}><option value="light">Светлая</option><option value="dark">Тёмная</option><option value="system">Системная</option></select></div>
-        <div className="desk-setting-row"><div><b>Вид тренировки</b><small>Все упражнения или одно за раз</small></div><select aria-label="Вид тренировки" value={S.workoutView} onChange={e => update(s => { s.workoutView = e.target.value })}><option value="list">Список</option><option value="cards">По одному</option><option value="compact">Компактный</option></select></div>
+      <section className="desk-panel"><div className="desk-panel-heading"><h2>Профиль и внешний вид</h2><Icon name="person" /></div><label className="desk-field">Как тебя называть<input className="input" maxLength={40} placeholder="Имя (необязательно)" ref={nameRef} value={nameDraft} onChange={e => { const value = e.target.value; setNameDraft(value); update(s => { s.desktopName = value }) }} /></label>
+        <div className="desk-setting-row"><div><b>Тема</b><small>Светлая, тёмная или как в Windows</small></div><select aria-label="Тема" value={S.theme} onChange={e => { const value = e.target.value; update(s => { s.theme = value }) }}><option value="light">Светлая</option><option value="dark">Тёмная</option><option value="system">Системная</option></select></div>
+        <div className="desk-setting-row"><div><b>Вид тренировки</b><small>Все упражнения или одно за раз</small></div><select aria-label="Вид тренировки" value={S.workoutView} onChange={e => { const value = e.target.value; update(s => { s.workoutView = value }) }}><option value="list">Список</option><option value="cards">По одному</option><option value="compact">Компактный</option></select></div>
       </section>
-      <section className="desk-panel"><div className="desk-panel-heading"><h2>Во время тренировки</h2><Icon name="timer" /></div><div className="desk-setting-row"><div><b>Отдых между подходами</b><small>Можно переопределить для упражнения</small></div><select aria-label="Отдых" value={S.restSec} onChange={e => update(s => { s.restSec = Number(e.target.value) })}>{[30,45,60,75,90,120,180].map(n => <option key={n} value={n}>{n} сек</option>)}</select></div>
+      <section className="desk-panel"><div className="desk-panel-heading"><h2>Во время тренировки</h2><Icon name="timer" /></div><div className="desk-setting-row"><div><b>Отдых между подходами</b><small>Можно переопределить для упражнения</small></div><select aria-label="Отдых" value={S.restSec} onChange={e => { const value = Number(e.target.value); update(s => { s.restSec = value }) }}>{[30,45,60,75,90,120,180].map(n => <option key={n} value={n}>{n} сек</option>)}</select></div>
         <div className="desk-setting-row"><div><b>Звук таймера</b><small>Сигнал по окончании отдыха</small></div><Switch aria-label="Звук таймера" checked={S.sound} onChange={v => update(s => { s.sound = v })} /></div>
         <div className="desk-setting-row"><div><b>Вспышка экрана</b><small>Визуальный сигнал, если звук выключен</small></div><Switch aria-label="Вспышка экрана" checked={S.timerFlash} onChange={v => update(s => { s.timerFlash = v })} /></div>
         <div className="desk-setting-row"><div><b>Спрашивать вес перед тренировкой</b><small>Вес тела можно записывать и в обзоре</small></div><Switch aria-label="Спрашивать вес перед тренировкой" checked={S.weighIn} onChange={v => update(s => { s.weighIn = v })} /></div>

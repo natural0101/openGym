@@ -100,3 +100,59 @@ it('finds and records the personal exercise name without changing its identity',
  expect(applyVoiceAction(s,{action:'log_set',exercise_id:'0426',weight:10,reps:10},'personal',now).exercise).toBe('Мой жим вверх');
  expect(s.active.entries[0].id).toBe('0426');
 });
+
+it('does not consume timed prescriptions or legacy warmups when recording strength', () => {
+  const s = fresh(); applyVoiceAction(s, log, 'first', now)
+  const timed = { mode: 'time', sec: 45, done: false }
+  const warmup = { w: 2, r: 12, warmup: true, done: false }
+  s.active.entries[0].sets.push(timed, warmup)
+  const result = applyVoiceAction(s, log, 'next', now)
+  expect(result.set_index).toBe(3)
+  expect(s.active.entries[0].sets[1]).toEqual(timed)
+  expect(s.active.entries[0].sets[2]).toEqual(warmup)
+  expect(s.active.entries[0].sets[3]).toEqual({ w: 5, r: 10, done: true, voiceId: 'next' })
+})
+it('creates a reps entry instead of inheriting an existing timed target', () => {
+  const s = fresh(); applyVoiceAction(s, { action: 'start' }, 'start', now)
+  s.active.entries.push({ id: '0294', target: { mode: 'time' }, sets: [{ sec: 30, done: false }] })
+  const result = applyVoiceAction(s, log, 'next', now)
+  expect(result.entry_index).toBe(1)
+  expect(s.active.entries[1].target.mode).toBe('reps')
+  expect(s.active.entries[1].sets[0].sec).toBeUndefined()
+})
+it('restores the last voice pointer in call order across exercises and repeated undo', () => {
+  const s = fresh(); applyVoiceAction(s, log, 'a', now)
+  applyVoiceAction(s, { ...log, exercise_id: '0426' }, 'b', now)
+  applyVoiceAction(s, log, 'c', now)
+  applyVoiceAction(s, { action: 'undo_set' }, 'undo-c', now)
+  expect(s.desktopVoiceLast).toBe('b')
+  applyVoiceAction(s, { action: 'correct_set', reps: 11 }, 'edit-b', now)
+  expect(s.active.entries[1].sets[0].r).toBe(11)
+  applyVoiceAction(s, { action: 'undo_set' }, 'undo-b', now)
+  expect(s.desktopVoiceLast).toBe('a')
+  applyVoiceAction(s, { action: 'undo_set' }, 'undo-a', now)
+  expect(s.desktopVoiceLast).toBeNull()
+})
+it('rejects incompatible correction fields atomically and accepts effort corrections', () => {
+  const s = fresh(); applyVoiceAction(s, log, 'a', now)
+  const before = structuredClone(s)
+  for (const fields of [{ speed: 4 }, { minutes: 10 }, { effort: 'impossible' }, { weight: 8, speed: 4 }]) {
+    expect(() => applyVoiceAction(s, { action: 'correct_set', ...fields }, 'bad', now)).toThrow()
+    expect(s).toEqual(before)
+  }
+  const corrected = applyVoiceAction(s, { action: 'correct_set', effort: 'hard' }, 'edit', now)
+  expect(corrected.set).toMatchObject({ w: 5, r: 10, effort: 'hard' })
+  expect(corrected.effect).toBeUndefined()
+  applyVoiceAction(s, { action: 'log_set', exercise_id: '3666', minutes: 10 }, 'walk', now)
+  const cardioBefore = structuredClone(s)
+  expect(() => applyVoiceAction(s, { action: 'correct_set', weight: 2 }, 'bad-cardio', now)).toThrow()
+  expect(s).toEqual(cardioBefore)
+  expect(applyVoiceAction(s, { action: 'correct_set', speed: 5 }, 'speed', now).set).toMatchObject({ min: 10, speed: 5 })
+})
+it('rejects timed-row corrections with an actionable message', () => {
+  const s = fresh(); applyVoiceAction(s, log, 'a', now)
+  s.active.entries[0].sets[0] = { mode: 'time', sec: 30, done: true, voiceId: 'a' }
+  const before = structuredClone(s)
+  expect(() => applyVoiceAction(s, { action: 'correct_set', reps: 10 }, 'bad', now)).toThrow(/на время.*экране/)
+  expect(s).toEqual(before)
+})

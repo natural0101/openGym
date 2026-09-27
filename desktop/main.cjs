@@ -6,6 +6,7 @@ const { createStorage, validateState, MAX_BYTES } = require('./storage.cjs')
 const { createMedia } = require('./media.cjs')
 const { createWidget } = require('./widget.cjs')
 const { createVoice } = require('./voice.cjs')
+const { createRendererFlush } = require('./renderer-flush.cjs')
 
 // Test runs use their own directory and never touch a person's training history.
 if (process.env.OPENGYM_TEST_DATA && !app.isPackaged) app.setPath('userData', path.resolve(process.env.OPENGYM_TEST_DATA))
@@ -13,6 +14,8 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'opengym', privileges: { standar
 const single = app.requestSingleInstanceLock()
 if (!single) { app.quit() } else {
   let win, storage, media, closing = false, awake = null, widgetController = null, quitting = false, voice = null
+  let closePending = false
+  const flushRenderer = createRendererFlush(ipcMain, () => win)
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
   app.on('before-quit', () => { quitting = true; voice?.stop() })
   app.on('will-quit', () => widgetController?.dispose())
@@ -63,6 +66,7 @@ if (!single) { app.quit() } else {
     handle('desktop:info', () => ({ version: app.getVersion(), dataDir, backupDir: storage.backupDir, packaged: app.isPackaged }))
     handle('desktop:folder', () => shell.openPath(dataDir))
     handle('desktop:export', async () => {
+      await flushRenderer()
       await storage.flush()
       const { state } = await storage.read()
       if (!state) throw new Error('Пока нет данных для экспорта.')
@@ -79,7 +83,7 @@ if (!single) { app.quit() } else {
       const state = JSON.parse(await fs.readFile(file, 'utf8')); validateState(state)
       return state
     })
-    handle('desktop:restore', async state => { await storage.write(state, true); return state })
+    handle('desktop:restore', async state => { await flushRenderer(); await storage.write(state, true); return state })
     handle('desktop:print-plan', async html => {
       if (typeof html !== 'string' || Buffer.byteLength(html) > 2 * 1024 * 1024) throw new Error('Некорректный план.')
       const result = await dialog.showSaveDialog(win, { title: 'Сохранить план в PDF', defaultPath: 'openGym-plan.pdf', filters: [{ name: 'PDF', extensions: ['pdf'] }] })
@@ -123,11 +127,13 @@ if (!single) { app.quit() } else {
     win.on('close', event => {
       if (closing) return
       event.preventDefault()
-      // Renderer saves are immediate IPC calls, not a delayed debounce; flush queued disk writes.
-      Promise.all([storage.flush(), widgetController.flush()]).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
+      if (closePending) return
+      closePending = true
+      // Drain the renderer transaction queue before inspecting the disk queue.
+      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
         if (response === 1) { closing = true; win.close() }
-      })
+      }).finally(() => { closePending = false })
     })
     await win.loadURL('opengym://app/index.html')
     await widgetController.restore()

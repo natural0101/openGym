@@ -109,7 +109,31 @@ export function restoredStateFor(local, remote, dirty = false) {
 
 export const useStore = create((set, get) => {
   let desktopBoot = null
-  let saveSequence = 0
+  let desktopWrites = Promise.resolve()
+  // Every desktop producer runs against the last durable state. A rejected draft
+  // is never published or inherited by the next voice/manual command.
+  const queueDesktop = operation => {
+    const write = desktopWrites.then(operation)
+    desktopWrites = write.catch(error => {
+      set({ desktopSave: { status: 'error', message: error.message } })
+    })
+    return write
+  }
+  const writeDesktop = async (S, stamp = true) => {
+    if (stamp) S._ts = Date.now()
+    set({ desktopSave: { status: 'saving' } })
+    const result = await desktop().save(S)
+    registerCustom(S.customEx)
+    try { localStorage.setItem(KEY, JSON.stringify(S)) } catch {}
+    set({ S, desktopSave: { status: 'saved', at: result.savedAt } })
+    return result
+  }
+  if (DESKTOP) desktop().onFlush?.(async () => {
+    let pending
+    do { pending = desktopWrites; await pending } while (pending !== desktopWrites)
+    const save = get().desktopSave
+    if (save.status === 'error') throw Error(save.message || 'Данные не сохранены.')
+  })
   let pushTm = null
   let saveTm = null
   let toldTooLarge = false
@@ -147,19 +171,12 @@ export const useStore = create((set, get) => {
   // stamp it came with: re-stamping a read would make an unchanged copy look newer than a real
   // change made on another device, and push it over that change.
   const persist = (S, push = true, stamp = true) => {
+    if (DESKTOP) return queueDesktop(() => writeDesktop(S, stamp))
     let durableWrite
     if (stamp) S._ts = Date.now()
     registerCustom(S.customEx)
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) { if (!DESKTOP) throw e }
     set({ S })
-    if (DESKTOP) {
-      const sequence = ++saveSequence
-      set({ desktopSave: { status: 'saving' } })
-      durableWrite = desktop().save(S)
-      durableWrite.then(result => {
-        if (sequence === saveSequence) set({ desktopSave: { status: 'saved', at: result.savedAt } })
-      }).catch(error => { if (sequence === saveSequence) set({ desktopSave: { status: 'error', message: error.message } }) })
-    }
     if (MOBILE) nativePersist()
     if (push && get().user) {
       // Before boot has pulled, the copy in hand may be older than the server's: a push now
@@ -346,6 +363,13 @@ export const useStore = create((set, get) => {
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
+      if (DESKTOP) return queueDesktop(() => {
+        const S = clone(get().S)
+        reconcileBurger(S)
+        mut(S)
+        snapshotBurgerPlan(S)
+        return writeDesktop(S)
+      })
       const S = clone(get().S)
       if (DESKTOP) reconcileBurger(S)
       mut(S)
@@ -358,7 +382,7 @@ export const useStore = create((set, get) => {
       if (push) forceNext = true
       const next = clone(S)
       if (DESKTOP) { reconcileBurger(next); snapshotBurgerPlan(next) }
-      persist(next, push)
+      return persist(next, push)
     },
 
     // Fires after the moments where losing local data would actually hurt — a workout just
@@ -571,7 +595,7 @@ export const useStore = create((set, get) => {
             get().setGuest(true)
             const burgerChanged = reconcileBurger(state)
             snapshotBurgerPlan(state)
-            if (!result.state || burgerChanged) persist(state, false)
+            if (!result.state || burgerChanged) await persist(state, false)
             else set({ desktopSave: { status: 'saved' } })
           } catch (error) {
             get().setGuest(true)

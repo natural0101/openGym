@@ -128,3 +128,17 @@ Rollback application: retained openGym-Setup-1.3.1-x64.exe /S. Restore pre-clean
 Installed NSIS exited0; packaged EXE reported1.4.1. Verified local shoulder-press animation loaded, Russian instructions present, group buttons in Russian, media2648/2648 ready, key retained/microphone off. Profile deep-equaled pre-upgrade snapshot except timestamp. Real Windows captures outputs/openGym-Catalogue-Installed.png and openGym-Exercise-Russian.png inspected at1420x1000: grouping, selected row, animation and step copy visible, no content overlap. Seven known source title/step conflicts are marked and steps withheld. Evidence: ignored catalogue-ui-report.json/catalogue-installed-report.json. Full1324 animation biomechanics not audited.
 
 Rollback: retained outputs/openGym-Setup-1.4.0-x64.exe /S; before-catalogue-upgrade.json retained locally. No training edits or schema migration.
+
+## 1.4.2 voice reliability — 2026-09-27
+
+- `npm --prefix frontend test -- src/store src/desktop src/lib/finish-workout.test.js`: 130 PASS.
+- `npm run test:desktop`: 26 PASS (storage, session races and renderer flush).
+- `node desktop/voice-smoke.mjs`: PASS, actual Electron/IPC/disk with fake microphone and mock provider. Includes failed disk write followed by a successful unrelated command: rejected set remains absent. Zero renderer errors. Screenshot capture explicitly foregrounds the window after widget reopening.
+- Manual Electron queue smoke: start, add exercise, check set, rest, finish and fast profile-name typing PASS.
+- Real Electron queued close: first save delayed 900ms, second still in renderer queue when quitting; final disk state includes second mutation, PASS.
+- Live Deepgram synthetic Russian shoulder-press fixture: persisted log_set, connection remains listening, reconnect audio received. Isolated profile only.
+- NSIS installer exited 0; actual installed executable reports packaged 1.4.2. Live audio, navigation continuity, reconnect and process restart with retained encrypted key PASS. Real training profile deep-equaled pre-upgrade snapshot excluding timestamp. Microphone left off. Windows screen capture inspected.
+
+Local evidence: ignored voice-smoke-report.json, manual-queue-report.json, queued-close-report.json, voice-shoulder-live-report.json and voice-reliability-installed-report.json under desktop/test-output. User speech with treadmill noise and abrupt OS power loss remain untested. Provider availability is external.
+
+Rollback executable retained at outputs/openGym-Setup-1.4.1-x64.exe; run with `/S`. Pre-upgrade profile retained at desktop/test-output/before-voice-reliability.json; restore only if needed, preserving any later training first. No schema migration.

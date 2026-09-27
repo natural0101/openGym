@@ -6,7 +6,7 @@ import { applyVoiceAction, readVoiceAction } from './voice-actions.js'
 
 export const VOICE_LABELS = { off: 'Микрофон выключен', connecting: 'Подключаюсь…', listening: 'Слушаю тебя', thinking: 'Обдумываю ответ', speaking: 'Напарник отвечает', error: 'Разговор прерван' }
 export const useVoice = create(() => ({ status: 'off', error: '', hasKey: false, messages: [], sessionId: null, busy: false }))
-let context, stream, source, capture, gain, nextAudio = 0, generation = 0, queue = Promise.resolve(), bound = false, stopOnFinish = false
+let context, stream, source, capture, gain, nextAudio = 0, generation = 0, queue = Promise.resolve(), bound = false
 const playing = new Set(), cancelled = new Set()
 const message = (role, text) => useVoice.setState(s => ({ messages: [...s.messages, { role, text, id: crypto.randomUUID() }].slice(-80) }))
 function silence() { for (const node of playing) { try { node.stop() } catch {} } playing.clear(); nextAudio = 0 }
@@ -18,23 +18,33 @@ function release() {
   if (context) { void context.close().catch(() => {}); context = null }
 }
 export async function refreshVoice() { const info = await desktop().voiceInfo(); useVoice.setState({ hasKey: info.hasKey }); return info }
-export async function stopVoice() { release(); useVoice.setState({ status: 'off', busy: false }); await desktop().voiceStop() }
+export async function stopVoice(expectedSessionId) {
+  // Also used directly as a button handler; a click event is not a session ID.
+  if (typeof expectedSessionId !== 'string') expectedSessionId = undefined
+  if (expectedSessionId != null && expectedSessionId !== useVoice.getState().sessionId) return false
+  release(); useVoice.setState({ status: 'off', busy: false })
+  return desktop().voiceStop(expectedSessionId)
+}
 async function failVoice(error) {
-  await stopVoice().catch(() => {})
-  useVoice.setState({ error, status: 'error' })
+  const stopping = stopVoice(useVoice.getState().sessionId), token = generation
+  await stopping.catch(() => {})
+  if (token === generation) useVoice.setState({ error, status: 'error' })
 }
 export async function startVoice() {
   if (useVoice.getState().busy || !['off', 'error'].includes(useVoice.getState().status)) return
   useVoice.setState({ busy: true, error: '', status: 'connecting' })
   const token = ++generation
+  let startedSessionId
   try {
     if (!(await refreshVoice()).hasKey) throw Error('Сначала добавь ключ Deepgram ниже.')
     if (token !== generation) return
     context = new AudioContext({ sampleRate: 24000 }); await context.resume()
+    if (token !== generation) return
     await context.audioWorklet.addModule(new URL('../../voice-capture.js', window.location.href).href)
     if (token !== generation) return
     const session = await desktop().voiceStart(context.sampleRate)
-    if (token !== generation) { await desktop().voiceStop(); return }
+    startedSessionId = session.sessionId
+    if (token !== generation) { await desktop().voiceStop(session.sessionId); return }
     useVoice.setState({ sessionId: session.sessionId })
     const acquired = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }, video: false })
     if (token !== generation) { acquired.getTracks().forEach(t => t.stop()); return }
@@ -45,9 +55,11 @@ export async function startVoice() {
     capture.port.onmessage = event => { if (token === generation) desktop().voiceAudio(session.sessionId, new Uint8Array(event.data)).catch(() => { if (token === generation) void failVoice('Не удалось передать звук. Включи микрофон повторно; беседа сохранена до выхода из приложения.') }) }
   } catch (error) {
     if (token !== generation) return
-    release(); await desktop().voiceStop().catch(() => {})
-    useVoice.setState({ status: 'error', error: error.name === 'NotAllowedError' ? 'Нет доступа к микрофону. Разреши его для классических приложений в настройках конфиденциальности Windows.' : error.name === 'NotFoundError' ? 'Микрофон не найден. Подключи его и повтори.' : error.message })
-  } finally { useVoice.setState({ busy: false }) }
+    const stopping = stopVoice(startedSessionId ?? useVoice.getState().sessionId), cleanupToken = generation
+    await stopping.catch(() => {})
+    if (cleanupToken !== generation) return
+    useVoice.setState({ busy: false, status: 'error', error: error.name === 'NotAllowedError' ? 'Нет доступа к микрофону. Разреши его для классических приложений в настройках конфиденциальности Windows.' : error.name === 'NotFoundError' ? 'Микрофон не найден. Подключи его и повтори.' : error.message })
+  } finally { if (token === generation) useVoice.setState({ busy: false }) }
 }
 export function bindVoice() {
   if (bound) return () => {}
@@ -61,10 +73,17 @@ export function bindVoice() {
   })
   const unsubscribe = desktop().onVoice(event => {
     if (event.type === 'status') {
-      if (event.status === 'connecting') useVoice.setState({ sessionId: event.sessionId })
+      if (event.status === 'connecting') {
+        // Only a locally requested start may adopt a session. A late event from
+        // cancelled startup must not resurrect it or replace a live session.
+        if (!useVoice.getState().busy || useVoice.getState().status !== 'connecting') return
+        useVoice.setState({ sessionId: event.sessionId })
+      }
       if (event.sessionId !== useVoice.getState().sessionId && event.sessionId != null) return
-      useVoice.setState({ status: event.status, ...(event.message ? { error: event.message } : {}) })
-      if (['off', 'error'].includes(event.status)) release()
+      const previousStatus = useVoice.getState().status
+      if (['off', 'error'].includes(previousStatus) && !['off', 'error'].includes(event.status)) return
+      useVoice.setState({ status: event.status, ...(['off', 'error'].includes(event.status) ? { busy: false } : {}), ...(event.message ? { error: event.message } : {}) })
+      if (['off', 'error'].includes(event.status) && !['off', 'error'].includes(previousStatus)) release()
       return
     }
     if (event.sessionId !== useVoice.getState().sessionId) return
@@ -85,24 +104,35 @@ export function bindVoice() {
     }
     if (event.type === 'audio-done' && !playing.size && useVoice.getState().status === 'speaking') useVoice.setState({ status: 'listening' })
     if (event.type === 'command') {
+      const commandGeneration = generation
+      const currentCommand = () => commandGeneration === generation && event.sessionId === useVoice.getState().sessionId && !['off', 'error'].includes(useVoice.getState().status)
       queue = queue.catch(() => {}).then(async () => {
-        if (cancelled.delete(event.id) || event.sessionId !== useVoice.getState().sessionId || ['off', 'error'].includes(useVoice.getState().status)) return
+        if (cancelled.delete(event.id) || !currentCommand()) return
         let result
         try {
           const args = JSON.parse(event.arguments)
           result = readVoiceAction(useStore.getState().S, args)
           if (!result) {
-            await useStore.getState().update(S => { result = applyVoiceAction(S, args, event.id) })
+            await useStore.getState().update(S => {
+              if (cancelled.has(event.id) || !currentCommand()) throw Error('Голосовая команда отменена.')
+              result = applyVoiceAction(S, args, event.id)
+            })
+            // Storage may finish after cancellation or after another conversation starts.
+            // The durable row remains real; obsolete calls must not control the new session.
+            if (cancelled.delete(event.id) || !currentCommand()) return
             if (!result.duplicate) {
               if (result.effect === 'rest') useUI.getState().startRest(result.seconds, result.entry_index)
               if (result.effect === 'stop_rest') useUI.getState().stopRest()
-              if (result.effect === 'stop_listening') stopOnFinish = true
               message('saved', result.message || (result.effect === 'rest' ? `Отдых: ${result.seconds} сек.` : result.effect === 'stop_rest' ? 'Отдых остановлен.' : 'Микрофон выключен.'))
             }
           }
-        } catch (error) { result = { ok: false, saved: false, error: error.message }; message('notice', error.message) }
+        } catch (error) {
+          if (cancelled.delete(event.id) || !currentCommand()) return
+          result = { ok: false, saved: false, error: error.message }; message('notice', error.message)
+        }
+        if (cancelled.delete(event.id) || !currentCommand()) return
         await desktop().voiceResult(event.sessionId, event.id, result)
-        if (stopOnFinish) { stopOnFinish = false; await stopVoice() }
+        if (!cancelled.delete(event.id) && currentCommand() && !result.duplicate && result.effect === 'stop_listening') await stopVoice(event.sessionId)
       })
     }
   })

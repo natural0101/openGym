@@ -6,7 +6,7 @@ const { settings } = require('./voice-config.cjs')
 
 function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'wss://agent.deepgram.com/v1/agent/converse', onStatus = () => {} }) {
   const keyFile = path.join(dataDir, 'voice-key.bin')
-  let socket = null, sessionId = null, ready = false, interval, deadline, current = 'off'
+  let socket = null, sessionId = null, ready = false, interval, deadline, current = 'off', generation = 0, starting = false
   const pending = new Map(), finished = new Map(), restCues = new Set()
   // Conversation context stays in memory across disconnects, never in logs or backups.
   const history = []
@@ -18,6 +18,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
   const state = (status, message = '') => { current = status; emit({ type: 'status', status, message }); onStatus(status) }
   const send = message => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message)) }
   const stop = (message = '', failed = false) => {
+    generation++; starting = false
     const old = socket; socket = null; ready = false
     clearInterval(interval); clearTimeout(deadline)
     for (const item of pending.values()) clearTimeout(item.timer)
@@ -31,7 +32,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
   })
   handle('voice:info', async () => ({ hasKey: await fs.access(keyFile).then(() => true, () => false), status: current }))
   handle('voice:key', async value => {
-    if (socket) throw Error('Сначала выключи микрофон.')
+    if (socket || starting) throw Error('Сначала выключи микрофон.')
     if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{20,256}$/.test(value.trim())) throw Error('Вставь действительный API-ключ Deepgram.')
     if (!safeStorage.isEncryptionAvailable()) throw Error('Windows не предоставила защищённое хранилище ключа.')
     const bytes = safeStorage.encryptString(value.trim())
@@ -41,11 +42,20 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
   handle('voice:forget', async () => { stop(); history.length = 0; await fs.rm(keyFile, { force: true }); return { hasKey: false } })
   handle('voice:start', async sampleRate => {
     if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000) throw Error('Неподдерживаемая частота микрофона.')
-    if (socket) throw Error('Голосовой разговор уже запущен.')
+    if (socket || starting) throw Error('Голосовой разговор уже запущен.')
+    const token = ++generation
+    starting = true; sessionId = randomUUID(); state('connecting')
     let key
-    try { key = safeStorage.decryptString(await fs.readFile(keyFile)) } catch { throw Error('Добавь ключ Deepgram в разделе «Голосовой напарник».') }
-    sessionId = randomUUID(); state('connecting')
-    const ws = socket = new WebSocket(endpoint, { headers: { Authorization: `Token ${key}` }, handshakeTimeout: 15000, maxPayload: 1024 * 1024 })
+    try { key = safeStorage.decryptString(await fs.readFile(keyFile)) } catch {
+      if (token !== generation) throw Error('Подключение отменено.')
+      const message = 'Добавь ключ Deepgram в разделе «Голосовой напарник».'
+      stop(message, true); throw Error(message)
+    }
+    if (token !== generation) { key = null; throw Error('Подключение отменено.') }
+    let ws
+    try { ws = socket = new WebSocket(endpoint, { headers: { Authorization: `Token ${key}` }, handshakeTimeout: 15000, maxPayload: 1024 * 1024 }) }
+    catch (error) { stop('Не удалось начать голосовой разговор.', true); throw error }
+    starting = false
     key = null
     deadline = setTimeout(() => stop('Deepgram не подтвердил настройки. Проверь ключ, баланс и доступ к Voice Agent.', true), 20000)
     ws.on('open', () => { if (socket === ws) send(settings(sampleRate, [...history])) })
@@ -90,7 +100,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     send({ type: 'InjectAgentMessage', behavior: 'default', message: 'Отдых закончился. Если восстановился, можно следующий подход. Нужно ещё время — скажи.' })
     return true
   })
-  handle('voice:stop', () => { stop(); return true })
+  handle('voice:stop', id => { if (id != null && id !== sessionId) return false; stop(); return true })
   handle('voice:audio', (id, bytes) => {
     if (id !== sessionId || !ready || !socket || !(bytes instanceof Uint8Array) || bytes.byteLength > 32768 || bytes.byteLength % 2) return false
     if (socket.bufferedAmount > 256000) { stop('Соединение не успевает передавать звук. Подключись ещё раз.', true); return false }
@@ -105,6 +115,6 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     finished.set(callId, response); if (finished.size > 500) finished.delete(finished.keys().next().value)
     send(response); return true
   })
-  return { stop, active: () => !!socket, status: () => current }
+  return { stop, active: () => !!socket || starting, status: () => current }
 }
 module.exports = { createVoice }

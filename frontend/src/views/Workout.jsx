@@ -1,3 +1,4 @@
+import { DESKTOP } from '../desktop/platform.js'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -860,7 +861,7 @@ function ActiveWorkout() {
     })
   }
 
-  const toggle = (idx, i, side) => {
+  const toggle = async (idx, i, side) => {
     // Ticking a set ends the typing in that row: drop the keyboard before the rest timer, the
     // effort sheet or the next exercise moves in. WebKit keeps the input focused across the
     // button tap, and a focused input with its keyboard gone is what leaves the tab bar
@@ -869,7 +870,7 @@ function ActiveWorkout() {
     const m = modeAt(idx)
     const cardioEntry = m === 'cardio'
     let exJustDone = false, workoutDone = false, checked = false
-    update(s => {
+    const saving = update(s => {
       const e = s.active.entries[idx]
       // A per-side tick flips just that side; the row's own `done` (both sides) is then
       // recomputed by toggleSide, so every completion check below still reads a single boolean.
@@ -892,6 +893,7 @@ function ActiveWorkout() {
         }
       }
     }, true)
+    if (DESKTOP) { try { await saving } catch { return } }
     if (workoutDone) workoutCompleteSheet()
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))

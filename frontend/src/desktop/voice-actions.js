@@ -42,14 +42,30 @@ const findRow = (S, args) => {
   if (!row.done || row.sides || row.drops?.length || row.clusters?.length) throw Error('Этот подход требует редактирования в экране тренировки.')
   return { entry: a.entries[ei], row, ei, si }
 }
+const rowMode = row => row?.mode || (row?.min != null ? 'cardio' : row?.sec != null ? 'time' : 'reps')
 function setValues(args, old = null) {
-  if (args.minutes != null || old?.mode === 'cardio') {
+  const mode = old ? rowMode(old) : args.minutes != null ? 'cardio' : 'reps'
+  if (mode === 'time') throw Error('Подход на время исправь на экране тренировки: голос пока меняет повторы или кардио.')
+  if (mode === 'cardio') {
     if (args.weight != null || args.reps != null) throw Error('Для дорожки назови длительность и, при желании, скорость.')
     const row = { ...(old || {}), mode: 'cardio', min: number(args.minutes ?? old?.min, 'длительность в минутах', 0.1, 600), done: true }
     if (args.speed != null) row.speed = number(args.speed, 'скорость в км/ч', 0, 40)
     return row
   }
+  if (args.minutes != null || args.speed != null) throw Error('Это силовой подход. Назови вес или повторы; кардио запиши отдельно.')
   return { ...(old || {}), w: number(args.weight ?? old?.w, 'вес', 0, 1000), r: number(args.reps ?? old?.r, 'повторы', 1, 1000, true), done: true }
+}
+function withEffort(row, effort) {
+  if (effort != null) {
+    if (!['easy', 'moderate', 'hard'].includes(effort)) throw Error('Уточни, насколько тяжёлым был подход: легко, умеренно или тяжело.')
+    row.effort = effort
+  }
+  return row
+}
+function lastSurvivingVoiceSet(S) {
+  const surviving = S.active.entries.flatMap(e => e.sets).filter(s => s.done && s.voiceId)
+  const ids = new Set(surviving.map(s => s.voiceId))
+  return S.desktopVoiceReceipts?.slice().reverse().find(r => ids.has(r.id))?.id || surviving.at(-1)?.voiceId || null
 }
 // Mutates a store draft only. The caller must await durable storage before acknowledging.
 export function applyVoiceAction(S, args, callId, now = Date.now()) {
@@ -66,17 +82,13 @@ export function applyVoiceAction(S, args, callId, now = Date.now()) {
   } else if (args.action === 'log_set') {
     const ex = catalogue(S).find(e => e.id === args.exercise_id)
     if (!ex) throw Error('Сначала найди упражнение через search.')
-    const row = { ...setValues(args), voiceId: callId }
-    if (args.effort != null) {
-      if (!['easy', 'moderate', 'hard'].includes(args.effort)) throw Error('Уточни, насколько тяжёлым был подход.')
-      row.effort = args.effort
-    }
+    const row = { ...withEffort(setValues(args), args.effort), voiceId: callId }
     if (!S.active) S.active = makeActive(S, args.name, now)
     if (S.active.d !== burgerDay(now) || S.active.backfill) throw Error('Открыта тренировка за другую дату. Сначала заверши или отредактируй её вручную.')
-    let entry = S.active.entries.find(e => e.id === ex.id)
+    let entry = S.active.entries.find(e => e.id === ex.id && (!e.target?.mode || e.target.mode === rowMode(row)))
     if (!entry) { entry = { id: ex.id, target: { id: ex.id, mode: row.mode || 'reps', sets: 1, restSec: S.restSec }, sets: [] }; S.active.entries.push(entry) }
-    const empty = entry.sets.findIndex(s => !s.done && s.phase !== 'warmup' && !s.sides && !s.drops?.length && !s.clusters?.length)
-    if (empty >= 0) entry.sets[empty] = { ...entry.sets[empty], ...row }
+    const empty = entry.sets.findIndex(s => !s.done && !s.warmup && s.phase !== 'warmup' && rowMode(s) === rowMode(row) && !s.sides && !s.drops?.length && !s.clusters?.length)
+    if (empty >= 0) entry.sets[empty] = row
     else entry.sets.push(row)
     S.desktopVoiceLast = callId
     result = { ok: true, message: 'Подход записан.', exercise: label(S, ex), entry_index: S.active.entries.indexOf(entry), set_index: empty >= 0 ? empty : entry.sets.length - 1, set: row, unit: S.unit, ...exerciseRest(ex, row, S.desktopRestOverrides) }
@@ -88,14 +100,14 @@ export function applyVoiceAction(S, args, callId, now = Date.now()) {
     if (!row || !ex) throw Error('Сначала запиши выполненный подход этого упражнения.')
     result = { ok: true, message: 'Упражнение закончено. Тренировка продолжается.', exercise: label(S, ex), ...exerciseRest(ex, row, S.desktopRestOverrides, true) }
   } else if (args.action === 'correct_set') {
-    if (args.weight == null && args.reps == null && args.minutes == null && args.speed == null) throw Error('Назови, что исправить в подходе.')
+    if (args.weight == null && args.reps == null && args.minutes == null && args.speed == null && args.effort == null) throw Error('Назови, что исправить в подходе.')
     const { entry, row, ei, si } = findRow(S, args)
-    entry.sets[si] = setValues(args, row)
+    entry.sets[si] = withEffort(setValues(args, row), args.effort)
     result = { ok: true, message: 'Подход исправлен.', entry_index: ei, set_index: si, set: entry.sets[si], unit: S.unit }
   } else if (args.action === 'undo_set') {
     const { entry, ei, si } = findRow(S, args); entry.sets.splice(si, 1)
     if (!entry.sets.length) S.active.entries.splice(ei, 1)
-    S.desktopVoiceLast = null
+    S.desktopVoiceLast = lastSurvivingVoiceSet(S)
     result = { ok: true, message: 'Подход удалён из текущей тренировки.' }
   } else if (args.action === 'finish') {
     if (!S.active) throw Error('Нет активной тренировки. Повторная запись не создана.')

@@ -91,3 +91,9 @@ Available plate combinations are not configured yet; the assistant must not inve
 ## Grouped Russian catalogue (1.4.1)
 
 Мои упражнения opens the catalogue with a home-equipment filter. Choose a muscle group, search a Russian name or select equipment; switch to Мой список for selected exercises. The preview contains the existing local animation, Russian instructions, muscles and personal name/rest controls. Removing a favourite does not remove training history. Seven source descriptions that conflict with their own titles are withheld with a visible explanation. Source comparison and translation limits are in DESKTOP_CATALOGUE.md.
+
+## Voice reliability (1.4.2)
+
+Desktop mutations are serialized against the last successfully saved state. Failed drafts and their voice receipts are discarded; subsequent commands cannot accidentally persist them. Manual completion, navigation and rest wait for successful saving. Close/export/restore request a renderer queue drain before the disk operation; missing confirmation blocks safe close.
+
+Voice startup and delayed command effects are scoped to a session. Cancelling during connection setup invalidates the pending start; an old command cannot stop a new conversation or start its rest timer. Cancellation after a completed disk write does not erase that already saved set. Strength logging skips warmups and incompatible timed rows; repeated undo finds the previous remaining voice set. Corrections reject incompatible fields and accept effort changes.

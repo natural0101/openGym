@@ -43,9 +43,9 @@ export default function DesktopHome() {
   const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
   const monday = new Date(now); monday.setDate(now.getDate() - (now.getDay() + 6) % 7)
   const recent = [...S.workouts].sort((a, b) => b.d.localeCompare(a.d) || (b.start || 0) - (a.start || 0)).slice(0, 8)
-  const create = () => {
+  const create = async () => {
     const id = crypto.randomUUID()
-    useStore.getState().update(s => { s.routines.push({ id, name: 'Новая программа', emoji: 'dumbbell', ex: [] }) })
+    try { await useStore.getState().update(s => { s.routines.push({ id, name: 'Новая программа', emoji: 'dumbbell', ex: [] }) }) } catch { return }
     nav('/plan/r/' + id)
   }
   return <div className="workspace-home">
