@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('openGymDesktop', Object.freeze({
   voiceKey: key => ipcRenderer.invoke('voice:key', key),
   voiceForget: () => ipcRenderer.invoke('voice:forget'),
   voiceStart: rate => ipcRenderer.invoke('voice:start', rate),
+  voiceRestComplete: (id, cueId) => ipcRenderer.invoke('voice:rest-complete', id, cueId),
   voiceStop: () => ipcRenderer.invoke('voice:stop'),
   voiceAudio: (id, bytes) => ipcRenderer.invoke('voice:audio', id, bytes),
   voiceResult: (id, callId, result) => ipcRenderer.invoke('voice:result', id, callId, result),

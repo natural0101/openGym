@@ -70,4 +70,33 @@ describe('voice workout transactions', () => {
     const s = fresh(); expect(applyVoiceAction(s, { action: 'rest', seconds: 60 }, 'rest', now)).toMatchObject({ effect: 'rest', seconds: 60 })
     expect(s.workouts).toEqual([]); expect(s.desktopBurger).toBeUndefined()
   })
+  it('automatically rests after a new set, but never restarts on duplicate or correction', () => {
+    const s = fresh()
+    expect(applyVoiceAction(s, log, 'one', now)).toMatchObject({ effect: 'rest', seconds: 75 })
+    expect(applyVoiceAction(s, log, 'one', now).effect).toBeUndefined()
+    expect(applyVoiceAction(s, { action: 'correct_set', reps: 12 }, 'edit', now).effect).toBeUndefined()
+    const cardio = applyVoiceAction(s, { action: 'log_set', exercise_id: '3666', minutes: 10 }, 'walk', now)
+    expect(cardio.effect).toBeUndefined()
+  })
+  it('uses a personal interval and finishes only the exercise, not the workout', () => {
+    const s = fresh(); s.desktopRestOverrides = { '0294': 100 }
+    expect(applyVoiceAction(s, log, 'one', now).seconds).toBe(100)
+    expect(applyVoiceAction(s, { action: 'finish_exercise' }, 'end-ex', now)).toMatchObject({ effect: 'rest', seconds: 130 })
+    expect(s.active.entries).toHaveLength(1); expect(s.workouts).toHaveLength(0)
+  })
+  it('provides bounded actual history only for exercises in the current workout', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now)
+    s.workouts = Array.from({ length: 6 }, (_, i) => ({ id: String(i), d: '2026-09-20', entries: [{ id: '0294', sets: [{ w: 4, r: 10, done: true }] }, { id: '1760', sets: [{ w: 20, r: 5, done: true }] }] }))
+    const context = readVoiceAction(s, { action: 'context' })
+    expect(context.recentExerciseHistory).toHaveLength(4)
+    expect(context.recentExerciseHistory[0].entries).toHaveLength(1)
+    expect(context.recentExerciseHistory[0].entries[0].sets[0].weight).toBe(4)
+  })
 })
+
+it('finds and records the personal exercise name without changing its identity', () => {
+ const s=fresh();s.desktopExerciseNames={'0426':'Мой жим вверх'};s.desktopFavorites=['0426'];
+ expect(readVoiceAction(s,{action:'search',query:'мой жим вверх'}).matches[0]).toMatchObject({exercise_id:'0426',name:'Мой жим вверх'});
+ expect(applyVoiceAction(s,{action:'log_set',exercise_id:'0426',weight:10,reps:10},'personal',now).exercise).toBe('Мой жим вверх');
+ expect(s.active.entries[0].id).toBe('0426');
+});

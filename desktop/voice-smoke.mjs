@@ -8,14 +8,14 @@ const profile=await mkdtemp(path.join(output,'voice-smoke-'))
 const server=new WebSocketServer({host:'127.0.0.1',port:0});await new Promise(r=>server.once('listening',r))
 const fakeKey='opengym_voice_test_key_not_a_real_secret'
 let socket, inputBytes=0, settings, pending=new Map(), connections=0
-const responses=[]
-server.on('connection',(ws,req)=>{connections++;assert.equal(req.headers.authorization,'Token '+fakeKey);socket=ws;ws.on('message',(data,binary)=>{if(binary){inputBytes+=data.length;return}const m=JSON.parse(data.toString());if(m.type==='Settings'){settings=m;ws.send(JSON.stringify({type:'SettingsApplied'}))}if(m.type==='FunctionCallResponse'){responses.push(m);const callback=pending.get(m.id);if(callback){pending.delete(m.id);callback(JSON.parse(m.content))}}})})
+const responses=[], injections=[]
+server.on('connection',(ws,req)=>{connections++;assert.equal(req.headers.authorization,'Token '+fakeKey);socket=ws;ws.on('message',(data,binary)=>{if(binary){inputBytes+=data.length;return}const m=JSON.parse(data.toString());if(m.type==='Settings'){settings=m;ws.send(JSON.stringify({type:'SettingsApplied'}))}if(m.type==='InjectAgentMessage')injections.push(m);if(m.type==='FunctionCallResponse'){responses.push(m);const callback=pending.get(m.id);if(callback){pending.delete(m.id);callback(JSON.parse(m.content))}}})})
 const app=await electron.launch({args:['.','--use-fake-device-for-media-stream'],env:{...process.env,OPENGYM_TEST_DATA:profile,OPENGYM_VOICE_TEST_URL:'ws://127.0.0.1:'+server.address().port}})
 const checks=[],errors=[]
 const command=async(id,args)=>{const result=new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(Error('Command timed out '+id))},12000);pending.set(id,x=>{clearTimeout(timer);resolve(x)})});socket.send(JSON.stringify({type:'FunctionCallRequest',functions:[{id,name:'workout_action',arguments:JSON.stringify(args),client_side:true}]}));return result}
 try{
- const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.getByRole('heading',{name:'Домашние тренировки',exact:true}).waitFor()
- await page.getByRole('button',{name:'Голосовой напарник',exact:true}).click()
+ const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.getByRole('heading',{name:'Сегодня',exact:true}).waitFor()
+ await page.evaluate(()=>location.hash='/voice')
  await page.getByRole('button',{name:'Начать разговор',exact:true}).click();await page.getByText('Сначала добавь ключ Deepgram ниже.',{exact:true}).waitFor();assert.equal(inputBytes,0)
  await page.getByLabel('API-ключ Deepgram',{exact:true}).fill(fakeKey)
  await page.getByRole('button',{name:'Сохранить ключ',exact:true}).click();await page.getByText('Ключ сохранён на этом компьютере. Теперь включи микрофон.',{exact:true}).waitFor()
@@ -34,7 +34,8 @@ try{
  checks.push('Same live connection survives history/workout/settings/home/voice navigation.')
  assert((await command('context',{action:'context'})).ok)
  assert((await command('search',{action:'search',query:'беговая дорожка'})).matches.some(x=>x.exercise_id==='3666'))
- const first=await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert(first.ok&&first.saved)
+ const first=await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert(first.ok&&first.saved);assert.equal(first.seconds,75)
+ await page.evaluate(()=>location.hash='/home');await page.getByRole('heading',{name:'Сгибание рук с гантелями',exact:true}).waitFor();await page.getByRole('timer').filter({hasText:'1:'}).waitFor();await page.screenshot({path:path.join(output,'today-live-set.png')});await page.evaluate(()=>location.hash='/voice')
  const disk=()=>readFile(path.join(profile,'training.json'),'utf8').then(JSON.parse)
  assert.equal((await disk()).active.entries[0].sets.length,1)
  assert((await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10})).saved)
@@ -44,13 +45,14 @@ try{
  assert((await command('undo',{action:'undo_set'})).saved);assert.equal((await disk()).active.entries[0].sets.length,1)
  const invalid=await command('invalid',{action:'log_set',exercise_id:'0294',reps:10});assert.equal(invalid.ok,false);assert.equal((await disk()).active.entries[0].sets.length,1)
  assert((await command('walk',{action:'log_set',exercise_id:'3666',minutes:10,speed:4})).saved)
- const resting=await command('rest',{action:'rest',seconds:60});assert.equal(resting.seconds,60)
+ const resting=await command('rest',{action:'rest',seconds:5});assert.equal(resting.seconds,5)
+ for(let i=0;i<70&&!injections.length;i++)await page.waitForTimeout(100);assert.equal(injections.length,1);assert.equal(injections[0].behavior,'default');assert(injections[0].message.includes('Отдых закончился'));checks.push('Automatic exercise rest visible on Today; natural timer expiry sends one non-interrupting voice reminder.')
  const opening=app.waitForEvent('window');await page.getByRole('button',{name:'Показать виджет на рабочем столе'}).click();const widget=await opening;await widget.waitForURL('**/widget/index.html');await widget.getByRole('button',{name:'Слушаю · выключить'}).waitFor()
  assert(await widget.evaluate(()=>document.querySelector('.widget').getBoundingClientRect().bottom+6<=innerHeight))
  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>!w.webContents.getURL().includes('/widget/')).close())
  await page.waitForTimeout(200);await widget.getByRole('button',{name:'Вернуться к тренировке ↗'}).click()
  await page.waitForTimeout(200);assert.equal((await page.evaluate(()=>window.openGymDesktop.voiceInfo())).status,'listening');assert.equal(connections,initialConnections)
- await page.getByRole('button',{name:'Голосовой напарник',exact:true}).click()
+ await page.evaluate(()=>location.hash='/voice')
  checks.push('Closing main window and reopening active workout from desktop widget preserves the same microphone session.')
  assert((await command('stoprest',{action:'stop_rest'})).ok)
  assert((await command('finish',{action:'finish'})).saved)

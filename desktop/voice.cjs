@@ -7,7 +7,7 @@ const { settings } = require('./voice-config.cjs')
 function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'wss://agent.deepgram.com/v1/agent/converse', onStatus = () => {} }) {
   const keyFile = path.join(dataDir, 'voice-key.bin')
   let socket = null, sessionId = null, ready = false, interval, deadline, current = 'off'
-  const pending = new Map(), finished = new Map()
+  const pending = new Map(), finished = new Map(), restCues = new Set()
   // Conversation context stays in memory across disconnects, never in logs or backups.
   const history = []
   const remember = item => {
@@ -21,7 +21,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     const old = socket; socket = null; ready = false
     clearInterval(interval); clearTimeout(deadline)
     for (const item of pending.values()) clearTimeout(item.timer)
-    pending.clear(); finished.clear()
+    pending.clear(); finished.clear(); restCues.clear()
     if (old) { old.removeAllListeners(); old.on('error', () => {}); old.terminate() }
     state(failed ? 'error' : 'off', message)
   }
@@ -67,6 +67,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
       if (event.type === 'AgentStartedSpeaking') state('speaking')
       if (event.type === 'AgentAudioDone') emit({ type: 'audio-done' })
       if (event.type === 'Error') stop(`Deepgram: ${String(event.code || 'ошибка сервиса').slice(0, 90)}. ${String(event.description || '').replace(/[a-z0-9]{32,}/gi, '[скрыто]').slice(0, 400)}`, true)
+      if (event.type === 'InjectionRefused') emit({ type: 'notice', text: 'Отдых окончен. Напарник не перебивает текущий разговор.' })
       if (event.type === 'Warning') emit({ type: 'notice', text: 'Deepgram сообщил о задержке или ошибке модели. Если ответа нет, переподключи микрофон.' })
       if (event.type === 'FunctionCallCancelled') {
         const item = pending.get(event.id); if (item) { clearTimeout(item.timer); pending.delete(event.id); emit({ type: 'cancel', id: event.id }) }
@@ -82,6 +83,12 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
       }
     })
     return { sessionId }
+  })
+  handle('voice:rest-complete', (id, cueId) => {
+    if (id !== sessionId || !ready || !socket || typeof cueId !== 'string' || cueId.length > 100 || restCues.has(cueId)) return false
+    restCues.add(cueId); if (restCues.size > 200) restCues.delete(restCues.values().next().value)
+    send({ type: 'InjectAgentMessage', behavior: 'default', message: 'Отдых закончился. Если восстановился, можно следующий подход. Нужно ещё время — скажи.' })
+    return true
   })
   handle('voice:stop', () => { stop(); return true })
   handle('voice:audio', (id, bytes) => {

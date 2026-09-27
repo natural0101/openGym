@@ -1,0 +1,14 @@
+.desk-exercise-filters {display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.desk-exercise-filters .input {flex:1;min-width:200px}
+.desk-exercise-filters select {border:2px solid var(--line,#292924);border-radius:10px;padding:10px;background:var(--surface,#fff);color:inherit;font:inherit;max-width:100%}
+.desk-exercise-layout {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:20px;align-items:start}
+.desk-exercise-preview {position:sticky;top:20px}
+.desk-exercise-preview .exmedia {max-height:290px;margin:16px 0}
+.desk-exercise-preview .exmedia img {max-height:290px;object-fit:contain}
+.desk-exercise-list {margin:14px 0}
+.desk-exercise-row {display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid var(--line,#ddd);padding:12px 4px;font:inherit;cursor:pointer}
+.desk-exercise-row.selected {background:var(--bg,#f6f2e7)}
+.desk-exercise-row>span:first-of-type {flex:1;min-width:0;overflow-wrap:anywhere}
+.desk-exercise-row small {display:block;margin-top:5px;opacity:.65}
+.desk-exercise-actions {display:flex;flex-wrap:wrap;gap:10px}
+@media(max-width:1000px){.desk-exercise-layout {grid-template-columns:1fr}.desk-exercise-preview {position:static}}

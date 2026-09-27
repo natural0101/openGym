@@ -6,8 +6,7 @@ import DesktopWidgetBridge from './DesktopWidgetBridge.jsx'
 import { bindVoice, useVoice, VOICE_LABELS, stopVoice } from './voice-client.js'
 
 const links = [
-  ['/home', 'house', 'Обзор'], ['/plan', 'calendar', 'Мой план'], ['/workout', 'dumbbell', 'Тренировка'],
-  ['/library', 'list', 'Упражнения'], ['/history', 'history', 'Журнал'], ['/stats', 'chart', 'Прогресс'], ['/voice', 'person', 'Голосовой напарник'],
+  ['/home', 'house', 'Сегодня'], ['/library', 'list', 'Мои упражнения'], ['/stats', 'chart', 'Статистика'],
 ]
 
 export default function DesktopShell() {
@@ -17,7 +16,7 @@ export default function DesktopShell() {
   useEffect(bindVoice, [])
   const [searching, setSearching] = useState(false), [query, setQuery] = useState('')
   const searchRef = useRef(null), commandRef = useRef(null)
-  const current = links.find(([path]) => loc.pathname.startsWith(path))?.[2] || (loc.pathname.includes('settings') ? 'Настройки' : 'Упражнения')
+  const current = links.find(([path]) => loc.pathname.startsWith(path))?.[2] || (loc.pathname.includes('settings') || loc.pathname === '/voice' ? 'Настройки' : loc.pathname === '/history' ? 'История занятий' : loc.pathname === '/workout' ? 'Тренировка' : 'Мой план')
   useEffect(() => {
     const key = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearching(v => !v) }
@@ -28,21 +27,21 @@ export default function DesktopShell() {
   }, [])
   useEffect(() => { if (searching) { setQuery(''); searchRef.current?.focus() } }, [searching])
   const go = route => { setSearching(false); nav(route) }
-  const choices = [...links, ['/settings', 'gear', 'Настройки'], ...S.routines.map(r => ['/plan/r/' + r.id, 'dumbbell', r.name])]
+  const choices = [...links, ['/history', 'history', 'История занятий'], ['/settings', 'gear', 'Настройки'], ...S.routines.map(r => ['/plan/r/' + r.id, 'dumbbell', r.name])]
     .filter(([, , label]) => label.toLowerCase().includes(query.toLowerCase()))
   const status = save.status === 'saving' ? 'Сохраняю…' : save.status === 'error' ? 'Ошибка сохранения' : save.status === 'loading' ? 'Открываю данные…' : 'Всё сохранено'
   return <>
     <DesktopWidgetBridge />
     <a className="desk-skip" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('app')?.focus() }}>Перейти к содержимому</a>
     <aside className="desk-sidebar">
-      <button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — обзор"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><span>openGym</span></button>
+      <button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — сегодня"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><span>openGym</span></button>
       <button className="desk-search" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
       <div className="desk-nav-label">Твой зал</div>
-      <nav aria-label="Основная навигация">{links.map(([path, icon, label]) => <button key={path} aria-label={label} title={label} className={'desk-nav-item' + (loc.pathname.startsWith(path) ? ' selected' : '')} aria-current={loc.pathname.startsWith(path) ? 'page' : undefined} onClick={() => nav(path)}><Icon name={icon} /><span>{label}</span>{path === '/workout' && S.active && <i className="desk-live" />}</button>)}</nav>
-        <div className="desk-sidebar-routines"><div className="desk-nav-label">Программы</div>{S.routines.map(r => <button key={r.id} title={r.name} onClick={() => nav('/plan/r/' + r.id)}><Icon name="dumbbell" /><span>{r.name}</span></button>)}</div>
+      <nav aria-label="Основная навигация">{links.map(([path, icon, label]) => <button key={path} aria-label={label} title={label} className={'desk-nav-item' + (loc.pathname.startsWith(path) ? ' selected' : '')} aria-current={loc.pathname.startsWith(path) ? 'page' : undefined} onClick={() => nav(path)}><Icon name={icon} /><span>{label}</span>{path === '/home' && S.active && <i className="desk-live" />}</button>)}</nav>
+
       <div className="desk-sidebar-bottom">
 
-        <button aria-label="Настройки" title="Настройки" className={'desk-nav-item' + (loc.pathname.startsWith('/settings') ? ' selected' : '')} onClick={() => nav('/settings')}><Icon name="gear" /><span>Настройки</span></button>
+        <button aria-label="Настройки" title="Настройки" className={'desk-nav-item' + ((loc.pathname.startsWith('/settings') || loc.pathname === '/voice') ? ' selected' : '')} onClick={() => nav('/settings')}><Icon name="gear" /><span>Настройки</span></button>
         <div className="desk-profile"><span className="desk-avatar"><Icon name="house" /></span><div>{S.desktopName || 'Мой профиль'}<small>Гантели и дорожка</small></div><span className="desk-offline-dot" title="Локальное сохранение" /></div>
       </div>
     </aside>
@@ -55,8 +54,8 @@ export default function DesktopShell() {
           else if (!e.shiftKey && document.activeElement === items.at(-1)) { e.preventDefault(); items[0]?.focus() }
         }
       }}>
-        <div className="desk-command-input"><Icon name="magnifier" /><input ref={searchRef} placeholder="Найти раздел или программу…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && choices.length) go(choices[0][0]); if (e.key === 'ArrowDown') { e.preventDefault(); commandRef.current.querySelector('button')?.focus() } }} /><button onClick={() => setSearching(false)} aria-label="Закрыть поиск"><kbd>Esc</kbd></button></div>
-        <div className="desk-command-results">{choices.length ? choices.map(([route, icon, label]) => <button key={route} onClick={() => go(route)}><Icon name={icon} /><span>{label}</span><Icon name="chevronRight" /></button>) : <p>Ничего не найдено. Попробуйте «план» или «журнал».</p>}</div>
+        <div className="desk-command-input"><Icon name="magnifier" /><input ref={searchRef} placeholder="Найти раздел…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && choices.length) go(choices[0][0]); if (e.key === 'ArrowDown') { e.preventDefault(); commandRef.current.querySelector('button')?.focus() } }} /><button onClick={() => setSearching(false)} aria-label="Закрыть поиск"><kbd>Esc</kbd></button></div>
+        <div className="desk-command-results">{choices.length ? choices.map(([route, icon, label]) => <button key={route} onClick={() => go(route)}><Icon name={icon} /><span>{label}</span><Icon name="chevronRight" /></button>) : <p>Ничего не найдено. Попробуйте «сегодня» или «история».</p>}</div>
       </div>
     </div>}
   </>

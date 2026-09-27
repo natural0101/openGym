@@ -52,6 +52,13 @@ export async function startVoice() {
 export function bindVoice() {
   if (bound) return () => {}
   bound = true
+  const unsubscribeRest = useUI.subscribe((state, previous) => {
+    const cue = state.restCompleted, voice = useVoice.getState()
+    if (cue && cue !== previous.restCompleted && !['off', 'error', 'connecting'].includes(voice.status)) {
+      message('notice', 'Отдых окончен. Продолжай, когда восстановишься.')
+      void desktop().voiceRestComplete(voice.sessionId, cue.id).catch(() => message('notice', 'Голосовое напоминание не отправлено; таймер завершён.'))
+    }
+  })
   const unsubscribe = desktop().onVoice(event => {
     if (event.type === 'status') {
       if (event.status === 'connecting') useVoice.setState({ sessionId: event.sessionId })
@@ -87,7 +94,7 @@ export function bindVoice() {
           if (!result) {
             await useStore.getState().update(S => { result = applyVoiceAction(S, args, event.id) })
             if (!result.duplicate) {
-              if (result.effect === 'rest') useUI.getState().startRest(result.seconds)
+              if (result.effect === 'rest') useUI.getState().startRest(result.seconds, result.entry_index)
               if (result.effect === 'stop_rest') useUI.getState().stopRest()
               if (result.effect === 'stop_listening') stopOnFinish = true
               message('saved', result.message || (result.effect === 'rest' ? `Отдых: ${result.seconds} сек.` : result.effect === 'stop_rest' ? 'Отдых остановлен.' : 'Микрофон выключен.'))
@@ -100,5 +107,5 @@ export function bindVoice() {
     }
   })
   void refreshVoice().catch(() => {})
-  return () => { unsubscribe(); bound = false; void stopVoice() }
+  return () => { unsubscribeRest(); unsubscribe(); bound = false; void stopVoice() }
 }

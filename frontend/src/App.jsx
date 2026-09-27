@@ -42,8 +42,10 @@ import CoachSetup from './views/CoachSetup.jsx'
 import { DESKTOP } from './desktop/platform.js'
 import DesktopShell, { DesktopSaveError } from './desktop/DesktopShell.jsx'
 import DesktopHome from './desktop/DesktopHome.jsx'
+import DesktopToday from './desktop/DesktopToday.jsx'
 import DesktopSettings from './desktop/DesktopSettings.jsx'
 import DesktopVoice from './desktop/DesktopVoice.jsx'
+import DesktopExercises from './desktop/DesktopExercises.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -154,17 +156,18 @@ function Shell() {
           {authed && !needsMobileOnboarding && <SyncBanner />}
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes>
-              <Route path="/home" element={DESKTOP ? <DesktopHome /> : <Home />} />
+              <Route path="/home" element={DESKTOP ? <DesktopToday /> : <Home />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
+              {DESKTOP && <Route path="/programs" element={<DesktopHome />} />}
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
               <Route path="/workout" element={DESKTOP ? <DesktopWorkout /> : <Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               {DESKTOP && <Route path="/voice" element={<DesktopVoice />} />}
-              <Route path="/library" element={<Library />} />
+              <Route path="/library" element={DESKTOP ? <DesktopExercises /> : <Library />} />
               <Route path="/muscles" element={<Muscles />} />
               <Route path="/settings" element={DESKTOP ? <DesktopSettings /> : <Settings />} />
               {DESKTOP && <Route path="/settings/advanced" element={<Settings />} />}
@@ -183,7 +186,7 @@ function Shell() {
       </div>
       {/* The chat owns the bottom of the screen: its composer sits where the tabs would be. */}
       {!DESKTOP && loc.pathname !== '/coach' && <TabBar onStart={startFlow} />}
-      <RestTimer />
+      <RestTimer hideRest={DESKTOP && loc.pathname === '/home'} />
       <Modals />
       <Toast />
       <TimerFlash />

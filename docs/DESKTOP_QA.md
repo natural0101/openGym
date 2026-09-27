@@ -106,3 +106,16 @@ NSIS 1.3.1 installation exited 0. Installed EXE reported packaged=true/version=1
 Rollback: run the retained outputs/openGym-Setup-1.3.0-x64.exe /S; pre-upgrade training snapshot is desktop/test-output/before-voice-continuity-fix.json. No schema migration was introduced. Human speech in treadmill noise and the exact original interruption remain unverified.
 
 Additional live regression: synthesized Russian «Я сделал жим гантелей стоя вверх на плечи. Гантели по десять килограммов, десять повторов. Пиши это.» produced context/search/log_set and remained listening. Reconnect returned continuation audio. Evidence: ignored voice-shoulder-live-report.json; isolated test profile only.
+
+
+## 1.4.0 — Today, personal exercises and rest
+
+40 focused tests passed: voice persistence/validation, personal names, adaptive rest, natural-expiry event vs cancellation, timer alerts. Today UI integration passed: 3 navigation tabs, empty day, personal exercise name/rest persistence, calendar and no overflow at1366/820px. Expanded voice-smoke passed with actual renderer/IPC/storage, auto-rest visible on Today, single reminder event, reconnect/disk-error/dedup regression; zero renderer errors.
+
+Live Deepgram injected rest-completion speech successfully (voice-rest-live-report.json). Synthesized Russian shoulder press selected from the personal shortlist wrote exercise0426/10kg/10reps, remained listening, displayed the set on Today and started120s rest; reconnect retained context (voice-shoulder-live-report.json, today-live-deepgram.png). An initial live probe reused older ambiguous test history and chose a one-arm variant; the isolated test was reset and given the chosen personal exercise before verifying. Human speech accuracy remains unverified.
+
+Installed NSIS1.4.0 exited0. Actual installed app reported1.4.0, decrypted existing key and returned32640 PCM bytes. User-authorized cleanup removed four exact template IDs and dictation-test-2026-09-27, their schedule and the single template-only Burger penalty. Backup: desktop/test-output/before-today-cleanup.json; desktop:restore also made a native backup. Active session, bodyweight, exercise weights and all remaining records preserved. Restart confirmed empty Today, three main tabs, microphone off, all2648 media ready and exercise image visible.
+
+Visual QA: inspected Today empty installed Windows screenshot1300x850 and live set screenshot1366x900; cream/Rubik styling preserved, primary mic button and next action visible, duplicate floating rest bar removed. Personal exercise preview and empty/selected states inspected; compact820px no horizontal overflow. Evidence in ignored desktop/test-output/{today-ui-report.json,voice-smoke-report.json,today-installed-report.json} and outputs/openGym-Today-Installed.png. Scope is desktop; external HTTP/domain checks are not applicable.
+
+Rollback application: retained openGym-Setup-1.3.1-x64.exe /S. Restore pre-cleanup JSON through Settings only if the user wants the removed templates/test record back; avoid overwriting newer workouts. Remaining limits: human treadmill noise, reboot/Explorer recovery, unconfigured plate weights, full Russian catalogue coverage, and repeating delayed coach prompts.

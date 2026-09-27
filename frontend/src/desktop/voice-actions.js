@@ -1,12 +1,13 @@
 import { EXDB } from '../lib/exercises-data.js'
-import { HOME_NAMES } from './home-names.js'
+import { exerciseLabel } from './exercise-labels.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { workoutVolume, bestWeightForEntry } from '../lib/history.js'
 import { beatsWeight } from '../lib/exercises.js'
 import { rewardBurger, burgerDay } from './burger-game.js'
+import { exerciseRest, REST_POLICY } from './rest-policy.js'
 
 const clean = value => String(value || '').toLowerCase().replace(/ё/g, 'е').trim()
-const label = ex => HOME_NAMES[ex.id] || ex.n || ex.name
+const label = (S, ex) => exerciseLabel(S, ex)
 const catalogue = S => [...EXDB, ...(S.customEx || [])]
 const aliases = { '3666': 'беговая беговой дорожка дорожке дорожку дорожки ходьба treadmill walking', '0294': 'бицепс бицепса сгибание сгибания рук гантели гантелями', '1760': 'присед приседания гоблет', '0426': 'жим стоя плечи гантели', '0334': 'махи разводка стороны гантели', '0662': 'отжимания от пола', '3211': 'отжимания с колен' }
 const number = (value, name, min, max, integer = false) => {
@@ -14,17 +15,19 @@ const number = (value, name, min, max, integer = false) => {
   return value
 }
 export function voiceContext(S) {
-  const names = new Map(catalogue(S).map(e => [e.id, label(e)]))
+  const names = new Map(catalogue(S).map(e => [e.id, label(S, e)]))
   const summary = w => w ? { id: w.id, name: w.name, date: w.d, entries: w.entries.map((e, i) => ({ entry_index: i, exercise_id: e.id, name: names.get(e.id), sets: e.sets.map((s, j) => ({ set_index: j, weight: s.w, reps: s.r, minutes: s.min, speed: s.speed, done: !!s.done })) })) } : null
-  return { ok: true, today: burgerDay(), unit: S.unit, weightConvention: 'Вес одной гантели', active: summary(S.active), lastWorkout: summary(S.workouts.at(-1)), defaultRestSeconds: S.restSec }
+  const activeIds = new Set(S.active?.entries.map(e => e.id) || [])
+  const recentExerciseHistory = S.workouts.slice().reverse().filter(w => w.entries.some(e => activeIds.has(e.id))).slice(0, 4).map(w => summary({ ...w, entries: w.entries.filter(e => activeIds.has(e.id)).map(e => ({ ...e, sets: e.sets.filter(s => s.done).slice(-8) })).slice(-8) }))
+  return { ok: true, today: burgerDay(), unit: S.unit, weightConvention: 'Вес одной гантели', active: summary(S.active), lastWorkout: summary(S.workouts.at(-1)), defaultRestSeconds: S.restSec, restPolicy: REST_POLICY, restOverrides: S.desktopRestOverrides || {}, personalExercises: catalogue(S).filter(e => (S.desktopFavorites || []).includes(e.id)).slice(0, 60).map(e => ({ exercise_id: e.id, name: label(S, e) })), recentExerciseHistory }
 }
 export function readVoiceAction(S, args) {
   if (args.action === 'context') return voiceContext(S)
   if (args.action !== 'search') return null
   const query = clean(args.query); if (query.length < 2 || query.length > 100) throw Error('Уточни название упражнения.')
   const terms = query.split(/\s+/)
-  const results = catalogue(S).map(ex => ({ ex, text: clean(`${label(ex)} ${ex.n || ''} ${aliases[ex.id] || ''}`) })).filter(({ text }) => terms.every(t => text.includes(t)))
-  return { ok: true, matches: results.slice(0, 12).map(({ ex }) => ({ exercise_id: ex.id, name: label(ex), originalName: ex.n, equipment: ex.eq })), total: results.length, hint: results.length ? 'При неоднозначности уточни упражнение, не выбирай случайно.' : 'Попробуй английский эквивалент или более короткое название.' }
+  const results = catalogue(S).map(ex => ({ ex, text: clean(`${label(S, ex)} ${ex.n || ''} ${aliases[ex.id] || ''}`) })).filter(({ text }) => terms.every(t => text.includes(t))).sort((a, b) => Number((S.desktopFavorites || []).includes(b.ex.id)) - Number((S.desktopFavorites || []).includes(a.ex.id)))
+  return { ok: true, matches: results.slice(0, 12).map(({ ex }) => ({ exercise_id: ex.id, name: label(S, ex), originalName: ex.n, equipment: ex.eq })), total: results.length, hint: results.length ? 'При неоднозначности уточни упражнение, не выбирай случайно.' : 'Попробуй английский эквивалент или более короткое название.' }
 }
 const makeActive = (S, name, now) => ({ id: crypto.randomUUID(), d: burgerDay(now), name: String(name || 'Тренировка с напарником').slice(0, 100), start: now, bw: S.bodyweight.at(-1)?.w ?? null, entries: [], routineIds: [] })
 const findRow = (S, args) => {
@@ -53,7 +56,7 @@ export function applyVoiceAction(S, args, callId, now = Date.now()) {
   if (!args || typeof args !== 'object' || Array.isArray(args)) throw Error('Не удалось разобрать команду.')
   if (!callId || callId.length > 200) throw Error('Команда без идентификатора.')
   const prior = S.desktopVoiceReceipts?.find(r => r.id === callId)
-  if (prior) return { ...prior.result, duplicate: true }
+  if (prior) { const { effect, ...result } = prior.result; return { ...result, duplicate: true } }
   let result
   if (['rest', 'stop_rest', 'stop_listening'].includes(args.action)) {
     result = { ok: true, effect: args.action, ...(args.action === 'rest' ? { seconds: number(args.seconds ?? S.restSec, 'отдых в секундах', 5, 3600, true) } : {}) }
@@ -64,6 +67,10 @@ export function applyVoiceAction(S, args, callId, now = Date.now()) {
     const ex = catalogue(S).find(e => e.id === args.exercise_id)
     if (!ex) throw Error('Сначала найди упражнение через search.')
     const row = { ...setValues(args), voiceId: callId }
+    if (args.effort != null) {
+      if (!['easy', 'moderate', 'hard'].includes(args.effort)) throw Error('Уточни, насколько тяжёлым был подход.')
+      row.effort = args.effort
+    }
     if (!S.active) S.active = makeActive(S, args.name, now)
     if (S.active.d !== burgerDay(now) || S.active.backfill) throw Error('Открыта тренировка за другую дату. Сначала заверши или отредактируй её вручную.')
     let entry = S.active.entries.find(e => e.id === ex.id)
@@ -72,7 +79,14 @@ export function applyVoiceAction(S, args, callId, now = Date.now()) {
     if (empty >= 0) entry.sets[empty] = { ...entry.sets[empty], ...row }
     else entry.sets.push(row)
     S.desktopVoiceLast = callId
-    result = { ok: true, message: 'Подход записан.', exercise: label(ex), entry_index: S.active.entries.indexOf(entry), set_index: empty >= 0 ? empty : entry.sets.length - 1, set: row, unit: S.unit }
+    result = { ok: true, message: 'Подход записан.', exercise: label(S, ex), entry_index: S.active.entries.indexOf(entry), set_index: empty >= 0 ? empty : entry.sets.length - 1, set: row, unit: S.unit, ...exerciseRest(ex, row, S.desktopRestOverrides) }
+  } else if (args.action === 'finish_exercise') {
+    if (!S.active) throw Error('Нет активной тренировки.')
+    const entry = args.exercise_id ? S.active.entries.find(e => e.id === args.exercise_id) : S.active.entries.find(e => e.sets.some(s => s.voiceId === S.desktopVoiceLast)) || S.active.entries.at(-1)
+    const row = entry?.sets.filter(s => s.done).at(-1)
+    const ex = entry && catalogue(S).find(e => e.id === entry.id)
+    if (!row || !ex) throw Error('Сначала запиши выполненный подход этого упражнения.')
+    result = { ok: true, message: 'Упражнение закончено. Тренировка продолжается.', exercise: label(S, ex), ...exerciseRest(ex, row, S.desktopRestOverrides, true) }
   } else if (args.action === 'correct_set') {
     if (args.weight == null && args.reps == null && args.minutes == null && args.speed == null) throw Error('Назови, что исправить в подходе.')
     const { entry, row, ei, si } = findRow(S, args)
