@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.4.0-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.4.1-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. The **Сегодня** page starts empty. Start the microphone and dictate completed work; sets appear on that day immediately. Open **Мои упражнения** to browse animations, select your exercises and save personal names and rest intervals. No prebuilt programme is required.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -85,4 +85,9 @@ Main navigation is Сегодня / Мои упражнения / Статист
 
 Strength voice logs start rest after durable saving: lower compound150s, upper compound120s, isolation75s, core60s, fallback90s. Explicit hard effort or <=5 repetitions add30s each. Per-exercise overrides take precedence. These are adjustable starting intervals, not measured recovery. Cardio and corrections do not start rest; duplicate receipts do not restart it. «Упражнение закончил» starts a longer transition without finishing the whole session. Natural expiry sends a single Deepgram InjectAgentMessage with default non-interrupting behavior; if a turn is active it can be refused. Cancelling/skipping rest sends no reminder.
 
-Available plate combinations are not configured yet; the assistant must not invent a supported weight increment. Full catalogue titles still include English, while the personal name can be Russian.
+Available plate combinations are not configured yet; the assistant must not invent a supported weight increment. All1324 built-in catalogue titles have Russian desktop names; personal names still take precedence.
+
+
+## Grouped Russian catalogue (1.4.1)
+
+Мои упражнения opens the catalogue with a home-equipment filter. Choose a muscle group, search a Russian name or select equipment; switch to Мой список for selected exercises. The preview contains the existing local animation, Russian instructions, muscles and personal name/rest controls. Removing a favourite does not remove training history. Seven source descriptions that conflict with their own titles are withheld with a visible explanation. Source comparison and translation limits are in DESKTOP_CATALOGUE.md.

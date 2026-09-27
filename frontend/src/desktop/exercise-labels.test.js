@@ -10,7 +10,7 @@ describe('personal exercise names', () => {
     expect(matchesPersonalExercise(state, ex, 'dumbbell curl')).toBe(true)
   })
   it('supports old profiles and Russian ё search', () => {
-    expect(exerciseLabel({}, ex)).toBe('Сгибание рук с гантелями')
+    expect(exerciseLabel({}, ex)).toBe('Сгибания рук с гантелями на бицепс')
     expect(exerciseLabel({}, { id: 'custom', n: 'Мой жим' })).toBe('Мой жим')
     expect(matchesPersonalExercise({ desktopExerciseNames: { '0294': 'Жим лёжа' } }, ex, 'жим лежа')).toBe(true)
   })

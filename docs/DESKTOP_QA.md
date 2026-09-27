@@ -119,3 +119,12 @@ Installed NSIS1.4.0 exited0. Actual installed app reported1.4.0, decrypted exist
 Visual QA: inspected Today empty installed Windows screenshot1300x850 and live set screenshot1366x900; cream/Rubik styling preserved, primary mic button and next action visible, duplicate floating rest bar removed. Personal exercise preview and empty/selected states inspected; compact820px no horizontal overflow. Evidence in ignored desktop/test-output/{today-ui-report.json,voice-smoke-report.json,today-installed-report.json} and outputs/openGym-Today-Installed.png. Scope is desktop; external HTTP/domain checks are not applicable.
 
 Rollback application: retained openGym-Setup-1.3.1-x64.exe /S. Restore pre-cleanup JSON through Settings only if the user wants the removed templates/test record back; avoid overwriting newer workouts. Remaining limits: human treadmill noise, reboot/Explorer recovery, unconfigured plate weights, full Russian catalogue coverage, and repeating delayed coach prompts.
+
+
+## 1.4.1 — grouped Russian catalogue
+
+22 focused tests passed:1324/1324 Russian names/IDs/instructions, equipment and primary muscle labels, all runtime catalogue groups including full body, Russian and personal search, voice transaction regression. Catalogue UI smoke passed group selection, Russian preview/steps, personal name/rest persistence, shortlist search, empty recovery, no overflow at1366/820px and zero renderer errors. Today and expanded voice integration smokes passed.
+
+Installed NSIS exited0; packaged EXE reported1.4.1. Verified local shoulder-press animation loaded, Russian instructions present, group buttons in Russian, media2648/2648 ready, key retained/microphone off. Profile deep-equaled pre-upgrade snapshot except timestamp. Real Windows captures outputs/openGym-Catalogue-Installed.png and openGym-Exercise-Russian.png inspected at1420x1000: grouping, selected row, animation and step copy visible, no content overlap. Seven known source title/step conflicts are marked and steps withheld. Evidence: ignored catalogue-ui-report.json/catalogue-installed-report.json. Full1324 animation biomechanics not audited.
+
+Rollback: retained outputs/openGym-Setup-1.4.0-x64.exe /S; before-catalogue-upgrade.json retained locally. No training edits or schema migration.

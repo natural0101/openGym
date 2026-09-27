@@ -35,7 +35,7 @@ try{
  assert((await command('context',{action:'context'})).ok)
  assert((await command('search',{action:'search',query:'беговая дорожка'})).matches.some(x=>x.exercise_id==='3666'))
  const first=await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert(first.ok&&first.saved);assert.equal(first.seconds,75)
- await page.evaluate(()=>location.hash='/home');await page.getByRole('heading',{name:'Сгибание рук с гантелями',exact:true}).waitFor();await page.getByRole('timer').filter({hasText:'1:'}).waitFor();await page.screenshot({path:path.join(output,'today-live-set.png')});await page.evaluate(()=>location.hash='/voice')
+ await page.evaluate(()=>location.hash='/home');await page.getByRole('heading',{name:'Сгибания рук с гантелями на бицепс',exact:true}).waitFor();await page.getByRole('timer').filter({hasText:'1:'}).waitFor();await page.screenshot({path:path.join(output,'today-live-set.png')});await page.evaluate(()=>location.hash='/voice')
  const disk=()=>readFile(path.join(profile,'training.json'),'utf8').then(JSON.parse)
  assert.equal((await disk()).active.entries[0].sets.length,1)
  assert((await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10})).saved)
