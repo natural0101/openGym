@@ -142,3 +142,7 @@ Rollback: retained outputs/openGym-Setup-1.4.0-x64.exe /S; before-catalogue-upgr
 Local evidence: ignored voice-smoke-report.json, manual-queue-report.json, queued-close-report.json, voice-shoulder-live-report.json and voice-reliability-installed-report.json under desktop/test-output. User speech with treadmill noise and abrupt OS power loss remain untested. Provider availability is external.
 
 Rollback executable retained at outputs/openGym-Setup-1.4.1-x64.exe; run with `/S`. Pre-upgrade profile retained at desktop/test-output/before-voice-reliability.json; restore only if needed, preserving any later training first. No schema migration.
+
+## 1.4.3 compact Today cards — 2026-09-27
+
+Exercise cards default to collapsed summaries. Expanded details show each completed set, notes (including approximate reps), mixed-value groups and a route to edit/add sets. Removed repeated saved labels. Verified in real Electron and installed1.4.3: three cards, keyboard expansion to five rows, approximation note, edit route, no horizontal overflow at820/1400px, zero renderer errors. Profile deep-equaled pre-upgrade snapshot. NSIS exit0. Local evidence script desktop/test-output/compact-today-check.mjs and screenshots outputs/openGym-compact-cards.png, outputs/openGym-expanded-card.png. Existing voice timer behavior unchanged. Rollback: outputs/openGym-Setup-1.4.2-x64.exe /S; snapshot desktop/test-output/before-compact-upgrade.json.
