@@ -1,0 +1,49 @@
+/* Desktop surfaces: spacing and tone carry hierarchy; focus remains explicit. */
+:root[data-desktop="true"] body{background:var(--bg)}
+:root[data-desktop="true"] #app{margin:70px 0 0 var(--desk-width);padding:24px 36px 40px;border:0;border-radius:0;box-shadow:none;min-height:calc(100dvh - 70px)}
+:root[data-desktop="true"] .desk-sidebar{border-right:0}
+:root[data-desktop="true"] .desk-topbar{border-bottom:0;box-shadow:none}
+:root[data-desktop="true"] .desk-profile{border-top:0}
+:root[data-desktop="true"] .desk-search{border:0;background:var(--surface-2);border-radius:8px}
+:root[data-desktop="true"] .desk-nav-item{border:0;box-shadow:none;border-radius:8px}
+:root[data-desktop="true"] .desk-nav-item:hover{border:0;background:var(--surface-2)}
+:root[data-desktop="true"] .desk-nav-item.selected{background:var(--neo-yellow);box-shadow:none;border:0}
+:root[data-desktop="true"] .btn{border:1px solid transparent;box-shadow:none;border-radius:8px;background:var(--surface-2);transition:background .15s,color .15s}
+:root[data-desktop="true"] .btn:hover{transform:none;box-shadow:none;background:var(--surface-3)}
+:root[data-desktop="true"] .btn:active{transform:none;box-shadow:none}
+:root[data-desktop="true"] .btn.primary{border-color:transparent;background:var(--neo-yellow)}
+:root[data-desktop="true"] .btn.primary:hover{background:#f3cf36}
+:root[data-desktop="true"] .iconbtn{border-color:transparent;background:var(--surface-2)}
+:root[data-desktop="true"] .input{border:1px solid var(--surface-3);border-radius:8px}
+:root[data-desktop="true"] .card,:root[data-desktop="true"] .desk-panel,:root[data-desktop="true"] .workout-swipe-surface>.card{border:0;box-shadow:none;background:var(--surface)}
+:root[data-desktop="true"] .today-exercise{border:0;box-shadow:none;background:transparent;padding:18px 0;margin:4px 0 12px}
+:root[data-desktop="true"] .today-exercise-summary{padding:4px 0}
+:root[data-desktop="true"] .today-exercise-summary h3{font-weight:550}
+:root[data-desktop="true"] .today-exercise-summary:hover h3{color:var(--label-2)}
+:root[data-desktop="true"] .today-set{border:0;padding:10px 12px}
+:root[data-desktop="true"] .today-set:nth-child(odd){background:var(--surface-2);border-radius:6px}
+:root[data-desktop="true"] .today-set-heading{padding-left:12px;padding-right:12px}
+:root[data-desktop="true"] .today-detail-footer,:root[data-desktop="true"] .today-finish{border:0}
+:root[data-desktop="true"] .today-voice,:root[data-desktop="true"] .today-rest{border:0;box-shadow:none;border-radius:12px;padding:20px}
+:root[data-desktop="true"] .today-voice{background:#f2eff8}
+:root[data-desktop="true"] .today-rest{background:#edf0e6}
+:root[data-desktop="true"] .training-buddy{border:0;box-shadow:none}
+:root[data-desktop="true"] .buddy-speech{border:0}
+:root[data-desktop="true"] .buddy-widget{border:0}
+:root[data-desktop="true"] .buddy-pick>span,:root[data-desktop="true"] .buddy-pick[aria-pressed="true"]>span{border:0;box-shadow:none}
+:root[data-desktop="true"] .motivation-panel{border:0;box-shadow:none;background:transparent;padding:4px 0 20px;margin-bottom:18px}
+:root[data-desktop="true"] .motivation-week h2{font-size:22px;margin:0}
+:root[data-desktop="true"] .motivation-week .neo-kicker{display:none}
+:root[data-desktop="true"] .motivation-dots{display:none}
+:root[data-desktop="true"] .motivation-headline{font-size:15px;font-weight:500;margin-top:12px}
+:root[data-desktop="true"] .motivation-growth{border:0;margin-top:10px;padding-top:0}
+:root[data-desktop="true"] .motivation-growth summary{cursor:pointer;font-size:13px;color:var(--label-2);width:fit-content;padding:4px 0}
+:root[data-desktop="true"] .motivation-growth[open] summary{margin-bottom:10px}
+:root[data-desktop="true"] .today-page .workspace-heading h1{font-size:36px;font-weight:600}
+:root[data-desktop="true"] .today-page .workspace-heading .neo-kicker,:root[data-desktop="true"] .today-page .workspace-heading p{display:none}
+:root[data-desktop="true"] .today-date{margin:18px 0 22px}
+:root[data-desktop="true"] .today-voice h2,:root[data-desktop="true"] .today-rest h2{font-size:18px;font-weight:550}
+:root[data-desktop="true"][data-theme="dark"] .today-voice,:root[data-desktop="true"][data-theme="dark"] .today-rest{background:var(--surface-2);color:var(--label)}
+:root[data-desktop="true"][data-theme="dark"] :is(.today-voice,.today-rest,.motivation-panel,.today-exercise) :is(p,small,summary,span){color:var(--label-2)}
+@media(max-width:980px){:root[data-desktop="true"] #app{padding:20px 24px 32px}}
+@media(prefers-reduced-motion:reduce){:root[data-desktop="true"] .btn{transition:none}}

@@ -156,3 +156,9 @@ Actual Electron --widget-only smoke passed three launches: main hidden, widget v
 NSIS1.4.4 exit0; installed executable1.4.4 verified. Training deep-equaled before-motivation-upgrade.json. Windows startup registration true/false read-back passed and original disabled state restored. Reminders stayed disabled, mic off. Installed Today/settings/widget screenshots inspected. Full Windows sign-out/sign-in and actual OS toast visibility not tested; persisted banner/actions and launch flag tested. Evidence under ignored desktop/test-output: motivation-smoke-report.json, motivation-login-smoke.json, simple-widget-report.json, motivation-installed-report.json.
 
 Rollback: retained outputs/openGym-Setup-1.4.3-x64.exe /S. Profile snapshot desktop/test-output/before-motivation-upgrade.json. No migration of user training; preserve later records before any restore.
+
+## 1.4.5 calm desktop surfaces — 2026-09-27
+
+Removed shell/sidebar/topbar/profile dividers, outer page frame and heavy card/button shadows. Today exercise lists use spacing, expanded rows use light alternating backgrounds. Growth explanation remains available in collapsed details. Rubik, existing palette, focus rings and primary action remain.
+
+Actual Electron and installed1.4.5 UI checks PASS: computed zero borders/no shadows on eight target surfaces, keyboard-compatible details and all five shoulder rows, catalogue/settings navigation, no horizontal overflow1400/820, no renderer errors. Motivation smoke PASS after disclosure change. NSIS exit0; user profile deep-equaled before-calm-upgrade.json. Installed screenshots outputs/openGym-minimal-1400.png and openGym-minimal-820.png inspected. Rollback outputs/openGym-Setup-1.4.4-x64.exe /S; no data migration. Existing web styling is outside desktop-scoped selectors.

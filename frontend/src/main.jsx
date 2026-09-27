@@ -6,6 +6,7 @@ import './index.css'
 import { DESKTOP } from './desktop/platform.js'
 import './desktop/desktop.css'
 import './desktop/neo.css'
+import './desktop/calm.css'
 
 if (DESKTOP) document.documentElement.dataset.desktop = 'true'
 
