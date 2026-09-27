@@ -1,3 +1,4 @@
+import { DESKTOP } from '../desktop/platform.js'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { DAYN, weekOrder, weekStartOf, uid, exCount, routineCount } from '../lib/format.js'
@@ -34,9 +35,10 @@ export default function Plan() {
     s.routines.splice(to, 0, moved)
   })
 
-  const addRoutine = () => {
+  const addRoutine = async () => {
     const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
-    update(s => { s.routines.push(r) })
+    const saving = update(s => { s.routines.push(r) })
+    if (DESKTOP) { try { await saving } catch { return } }
     nav('/plan/r/' + r.id)
   }
 

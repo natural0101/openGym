@@ -11,6 +11,8 @@ import { beep, vibrate } from './lib/sound.js'
 import { t, dateLocale, instrFor, exerciseNameFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
+import { rewardBurger } from './desktop/burger-game.js'
+import { DESKTOP, desktop } from './desktop/platform.js'
 import Media, { Thumb } from './components/Media.jsx'
 import LineChart from './components/LineChart.jsx'
 import Stepper from './components/Stepper.jsx'
@@ -267,9 +269,10 @@ function ImportSummary({ parsed, close }) {
     : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length
   const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
 
-  const doImport = () => {
+  const doImport = async () => {
     let res
-    update(s => { res = mergeImport(s, parsed) })
+    const saving = update(s => { res = mergeImport(s, parsed) })
+    if (DESKTOP) { try { await saving } catch { return } }
     close()
     toast(isBW
       ? t('{0} weigh-ins imported', res.added)
@@ -660,9 +663,10 @@ function ExerciseDetail({ ex, close }) {
   const last = lastEntryFor(st, ex.id)
   const best = bestWeightFor(st, ex.id)
   const fav = isFav(st, ex.id)
-  const flipFav = () => {
+  const flipFav = async () => {
     let on = false
-    update(s => { on = toggleFav(s, ex.id) })
+    const saving = update(s => { on = toggleFav(s, ex.id) })
+    if (DESKTOP) { try { await saving } catch { return } }
     toast(on ? t('Added to favourites') : t('Removed from favourites'))
   }
   return <>
@@ -757,12 +761,13 @@ function AddToRoutine({ ex, close }) {
   const pick = rid => {
     close()
     const isNew = rid === '_new'
-    exConfigSheet(ex, null, cfg => {
-      update(s => {
+    exConfigSheet(ex, null, async cfg => {
+      const saving = update(s => {
         let r = isNew ? { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] } : s.routines.find(x => x.id === rid)
         if (isNew) s.routines.push(r)
         if (r) r.ex.push({ id: ex.id, ...cfg })
       })
+      if (DESKTOP) { try { await saving } catch { return } }
       const r = isNew ? S().routines[S().routines.length - 1] : st.routines.find(x => x.id === rid)
       toast(t('“{0}” added to {1}', capWords(exerciseNameFor(ex)), r ? r.name : t('routine')))
       if (isNew && r) nav('/plan/r/' + r.id)
@@ -815,7 +820,7 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     setPrimaries(current => current.includes(value) ? current.filter(m => m !== value) : [...current, value])
   }
   const toggleSecondary = value => setSecondaries(current => current.includes(value) ? current.filter(m => m !== value) : [...current, value])
-  const save = () => {
+  const save = async () => {
     const name = n.trim()
     if (!name) { toast(t('Give it a name')); return }
     if (!bp) { toast(t('Pick a body part')); return }
@@ -836,13 +841,15 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     // for the user who drops the target and adds nothing in its place.
     const tg = (existing && prim.includes(existing.tg)) ? existing.tg : (primaryTaps.find(m => prim.includes(m)) || prim[0] || '')
     let id = existing && existing.id
-    if (existing) update(s => { const c = (s.customEx || []).find(x => x.id === id); if (c) {
+    let saving
+    if (existing) saving = update(s => { const c = (s.customEx || []).find(x => x.id === id); if (c) {
       c.n = name; c.bp = bp; c.desc = d; c.tg = tg; c.sm = sm; c.muscleGroups = groups; c.primaries = prim; c.secondaries = sm; c.eq = eq
     } })
     else {
       id = 'c' + uid()
-      update(s => { (s.customEx = s.customEx || []).push({ id, n: name, bp, desc: d, tg, sm, muscleGroups: groups, primaries: prim, secondaries: sm, eq, custom: true }) })
+      saving = update(s => { (s.customEx = s.customEx || []).push({ id, n: name, bp, desc: d, tg, sm, muscleGroups: groups, primaries: prim, secondaries: sm, eq, custom: true }) })
     }
+    if (DESKTOP) { try { await saving } catch { return } }
     close()
     toast(existing ? t('Saved') : t('“{0}” created', name))
     onDone && onDone(EXIDX[id])
@@ -1543,7 +1550,8 @@ function PlanTools({ close }) {
       close()
       // Web: the browser's print dialog (→ Save as PDF). Mobile: the OS print flow via the
       // native Print plugin — Android WebView has no window.print(). Same printable HTML both ways.
-      if (MOBILE) printHtml(planPrintHTML(st, user?.name || ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
+      if (DESKTOP) desktop().printPlan(planPrintHTML(st, user?.name || '')).then(r => { if (!r.canceled) toast('План сохранён в PDF') }).catch(e => toast(e.message))
+      else if (MOBILE) printHtml(planPrintHTML(st, user?.name || ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
       else printPlan(st, user?.name || '')
     }} disabled={!hasRoutines}>{t('Print / Save as PDF')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A clean one-page-per-plan printout — no exercise ever splits across a page.')}</div>
@@ -1807,10 +1815,10 @@ export function startFlow(routineIds) {
   if (S().weighIn === false) { beginWorkout(routineIds, null); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
-export function beginWorkout(routineIds, bw) {
+export async function beginWorkout(routineIds, bw) {
   const st = S()
   const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
-  update(s => {
+  const saving = update(s => {
     s.active = {
       id: uid(), d: todayISO(), start: Date.now(),
       // A session tracks its routines as a list; per-entry `rid` carries which one each
@@ -1823,6 +1831,7 @@ export function beginWorkout(routineIds, bw) {
       workoutView: st.workoutView || 'cards',
     }
   })
+  if (DESKTOP) { try { await saving } catch { return } }
   useUI.getState().stopRest()
   nav('/workout')
 }
@@ -1887,10 +1896,10 @@ export function logPastWorkoutSheet() {
 }
 // Backfill stays single-routine (the LogPastWorkout UI is one picker), but it emits the new
 // shape: a one-element (or empty) routine list, per-entry rid, no top-level routineId.
-function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
+async function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
   const st = S()
   const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineId ? [routineId] : [])
-  update(s => {
+  const saving = update(s => {
     s.active = {
       id: uid(), d: iso, start: backfillStart(iso, time),
       routineIds: rids,
@@ -1901,6 +1910,7 @@ function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
       workoutView: st.workoutView || 'cards',
     }
   })
+  if (DESKTOP) { try { await saving } catch { return } }
   useUI.getState().stopRest()
   nav('/workout')
 }
@@ -1976,14 +1986,15 @@ function TopWeight({ entryIdx, close }) {
   const workoutDone = unitDone && !nextUnit
   if (!entry || !ex) return null
 
-  const commit = advance => {
+  const commit = async advance => {
     const n = Math.round((v || 0) * 10) / 10
     if (!isFinite(n) || n < 0) { toast(t('Enter a valid weight')); return }
-    update(s => {
+    const saving = update(s => {
       s.active.entries[entryIdx].topW = n
       const cur = s.exWeights[entry.id]
       s.exWeights[entry.id] = { w: cur && cur.w > 0 && n > 0 ? betterWeight(entry.id, n, cur.w) : Math.max(n, cur ? cur.w : 0), d: todayISO() }
     })
+    if (DESKTOP) { try { await saving } catch { return } }
     close()
     if (advance && unitDone) {
       if (workoutDone) workoutCompleteSheet()               // no unfinished unit → finish/continue prompt
@@ -2185,7 +2196,7 @@ export function finishWorkout() {
   if (done < total) { confirmSheet({ title: t('Finish early?'), message: t(total - done === 1 ? '{0} set still unchecked. Finish the workout now?' : '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), onConfirm: doFinishWorkout }); return }
   doFinishWorkout()
 }
-function doFinishWorkout() {
+async function doFinishWorkout() {
   const st = S()
   const A = st.active
   if (!A) return
@@ -2209,7 +2220,7 @@ function doFinishWorkout() {
     snapshotFor: e => EXIDX[e.id]?.custom ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
   })
   w.vol = workoutVolume(w)
-  update(s => {
+  const saving = update(s => {
     if (past) {
       s.workouts = completeBackfill(s.workouts, A, w)
     } else {
@@ -2218,9 +2229,11 @@ function doFinishWorkout() {
         if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
       })
       s.workouts.push(w)
+      if (DESKTOP) rewardBurger(s, w)
     }
     s.active = null
   })
+  if (DESKTOP) { try { await saving } catch { return } }
   useStore.getState().autoBackupNow()
   useUI.getState().stopRest()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)

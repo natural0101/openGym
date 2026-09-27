@@ -9,7 +9,7 @@ const clock = sec => Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '
 // timed set (issue #16). They are mutually exclusive by construction — startWork() stops any
 // running rest — so the bar can never have to show both, and a work set gets its own colour
 // plus a "Done" that logs the time actually held.
-export default function RestTimer() {
+export default function RestTimer({ hideRest = false }) {
   const timer = useUI(s => s.timer)
   const work = useUI(s => s.work)
   const { addRest, stopRest, finishWorkEarly, stopWork } = useUI()
@@ -17,10 +17,10 @@ export default function RestTimer() {
   // The bar is fixed above the tab bar and floats over whatever is beneath it — during a
   // rest that was the next set's row. Extra bottom padding lets the page scroll clear.
   useEffect(() => {
-    document.body.classList.toggle('resting', !!on)
+    document.body.classList.toggle('resting', !!on && (!hideRest || !!work))
     return () => document.body.classList.remove('resting')
-  }, [!!on])
-  if (!on) return null
+  }, [!!on, hideRest, !!work])
+  if (!on || (hideRest && !work)) return null
   const pct = (on.left / on.total) * 100
 
   if (work) return (

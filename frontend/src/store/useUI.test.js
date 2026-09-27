@@ -96,3 +96,13 @@ describe('opt-in timer screen flash', () => {
     expect(useUI.getState().timerFlashId).toBe(1)
   })
 })
+
+describe('rest completion coaching event', () => {
+ beforeEach(()=>{vi.useFakeTimers();useUI.setState({restCompleted:null});useStore.setState({S:{...useStore.getState().S,sound:false}})});
+ afterEach(()=>{useUI.getState().stopRest();vi.useRealTimers()});
+ it('emits once for natural expiry, never for cancellation',()=>{
+ useUI.getState().startRest(2);useUI.getState().stopRest();vi.advanceTimersByTime(3000);expect(useUI.getState().restCompleted).toBe(null);
+ useUI.getState().startRest(2,3);vi.advanceTimersByTime(2000);const event=useUI.getState().restCompleted;expect(event.forIdx).toBe(3);expect(event.id).toBeTruthy();
+ vi.advanceTimersByTime(10000);expect(useUI.getState().restCompleted).toBe(event);
+ });
+});
