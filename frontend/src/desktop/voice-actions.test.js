@@ -1,0 +1,73 @@
+import { describe, it, expect } from 'vitest'
+import { applyVoiceAction, readVoiceAction } from './voice-actions.js'
+const now = new Date('2026-09-27T12:00:00').getTime()
+const fresh = () => ({ unit: 'kg', restSec: 75, bodyweight: [], customEx: [], workouts: [], routines: [], week: {}, dayPlan: {}, active: null })
+const log = { action: 'log_set', exercise_id: '0294', weight: 5, reps: 10 }
+describe('voice workout transactions', () => {
+  it('logs one set without fabricating other values and persists its receipt', () => {
+    const s = fresh(); const result = applyVoiceAction(s, log, 'one', now)
+    expect(result.saved).toBe(true); expect(s.active.entries[0].sets).toEqual([{ w: 5, r: 10, done: true, voiceId: 'one' }])
+    expect(s.workouts).toEqual([])
+  })
+  it('rejects unknown exercises, missing weights and invalid repetitions', () => {
+    for (const args of [{ ...log, exercise_id: 'unknown' }, { ...log, weight: undefined }, { ...log, reps: -1 }, { ...log, reps: 2.5 }, { ...log, weight: '5' }]) {
+      const s = fresh(); expect(() => applyVoiceAction(s, args, 'bad', now)).toThrow(); expect(s.active).toBe(null)
+    }
+  })
+  it('replayed IDs cannot duplicate sets, even after serializing the state', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now)
+    const restored = JSON.parse(JSON.stringify(s)); expect(applyVoiceAction(restored, log, 'one', now).duplicate).toBe(true)
+    expect(restored.active.entries[0].sets).toHaveLength(1)
+  })
+  it('fills an unchecked planned set without adding a duplicate prescription', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now)
+    s.active.entries[0].sets.push({ w: 8, r: 12, done: false })
+    applyVoiceAction(s, { ...log, weight: 6 }, 'two', now)
+    expect(s.active.entries[0].sets).toHaveLength(2); expect(s.active.entries[0].sets[1].w).toBe(6)
+  })
+  it('corrects and undoes the last voice set without changing earlier sets', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now); applyVoiceAction(s, log, 'two', now)
+    applyVoiceAction(s, { action: 'correct_set', reps: 12 }, 'edit', now)
+    expect(s.active.entries[0].sets.map(x => x.r)).toEqual([10, 12])
+    applyVoiceAction(s, { action: 'undo_set' }, 'undo', now)
+    expect(s.active.entries[0].sets.map(x => x.voiceId)).toEqual(['one'])
+  })
+  it('rejects ambiguous corrections and edits to complex sets', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now)
+    expect(() => applyVoiceAction(s, { action: 'correct_set' }, 'bad', now)).toThrow()
+    s.active.entries[0].sets[0].sides = {}; expect(() => applyVoiceAction(s, { action: 'undo_set' }, 'bad', now)).toThrow()
+  })
+  it('records and corrects treadmill duration and speed', () => {
+    const s = fresh(); applyVoiceAction(s, { action: 'log_set', exercise_id: '3666', minutes: 10, speed: 4 }, 'walk', now)
+    applyVoiceAction(s, { action: 'correct_set', minutes: 12 }, 'edit', now)
+    expect(s.active.entries[0].sets[0]).toMatchObject({ min: 12, speed: 4, done: true })
+  })
+  it('finishes into history and rewards Burger exactly once', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now)
+    applyVoiceAction(s, { action: 'finish' }, 'finish', now + 60000)
+    expect(s.active).toBe(null); expect(s.workouts).toHaveLength(1); expect(s.workouts[0].vol).toBe(50)
+    expect(s.desktopBurger.remaining).toBe(90)
+    applyVoiceAction(s, { action: 'finish' }, 'finish', now + 60000)
+    expect(s.workouts).toHaveLength(1); expect(s.desktopBurger.sessions).toBe(1)
+    expect(() => applyVoiceAction(s, { action: 'finish' }, 'other', now)).toThrow()
+  })
+  it('does not finish empty sessions or overwrite an existing active workout', () => {
+    const s = fresh(); applyVoiceAction(s, { action: 'start' }, 'start', now)
+    expect(() => applyVoiceAction(s, { action: 'finish' }, 'end', now)).toThrow()
+    expect(() => applyVoiceAction(s, { action: 'start' }, 'start2', now)).toThrow()
+  })
+  it('rejects changes and completion for a backfilled session', () => {
+    const s = fresh(); applyVoiceAction(s, log, 'one', now); s.active.backfill = { durationMin: 30 }
+    expect(() => applyVoiceAction(s, log, 'two', now)).toThrow()
+    expect(() => applyVoiceAction(s, { action: 'finish' }, 'end', now)).toThrow()
+  })
+  it('searches Russian and English names and reads actual context', () => {
+    const s = fresh(); expect(readVoiceAction(s, { action: 'search', query: 'дорожке' }).matches.some(e => e.exercise_id === '3666')).toBe(true)
+    expect(readVoiceAction(s, { action: 'search', query: 'dumbbell biceps curl' }).matches.some(e => e.exercise_id === '0294')).toBe(true)
+    applyVoiceAction(s, log, 'one', now); expect(readVoiceAction(s, { action: 'context' }).active.entries[0].sets[0].weight).toBe(5)
+  })
+  it('rest control neither adds workouts nor rewards Burger', () => {
+    const s = fresh(); expect(applyVoiceAction(s, { action: 'rest', seconds: 60 }, 'rest', now)).toMatchObject({ effect: 'rest', seconds: 60 })
+    expect(s.workouts).toEqual([]); expect(s.desktopBurger).toBeUndefined()
+  })
+})

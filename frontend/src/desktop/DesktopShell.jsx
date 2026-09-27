@@ -3,15 +3,18 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import Icon from '../components/Icon.jsx'
 import DesktopWidgetBridge from './DesktopWidgetBridge.jsx'
+import { bindVoice, useVoice, VOICE_LABELS, stopVoice } from './voice-client.js'
 
 const links = [
   ['/home', 'house', 'Обзор'], ['/plan', 'calendar', 'Мой план'], ['/workout', 'dumbbell', 'Тренировка'],
-  ['/library', 'list', 'Упражнения'], ['/history', 'history', 'Журнал'], ['/stats', 'chart', 'Прогресс'],
+  ['/library', 'list', 'Упражнения'], ['/history', 'history', 'Журнал'], ['/stats', 'chart', 'Прогресс'], ['/voice', 'person', 'Голосовой напарник'],
 ]
 
 export default function DesktopShell() {
   const nav = useNavigate(), loc = useLocation()
   const S = useStore(s => s.S), save = useStore(s => s.desktopSave)
+  const voiceStatus = useVoice(s => s.status)
+  useEffect(bindVoice, [])
   const [searching, setSearching] = useState(false), [query, setQuery] = useState('')
   const searchRef = useRef(null), commandRef = useRef(null)
   const current = links.find(([path]) => loc.pathname.startsWith(path))?.[2] || (loc.pathname.includes('settings') ? 'Настройки' : 'Упражнения')
@@ -43,7 +46,7 @@ export default function DesktopShell() {
         <div className="desk-profile"><span className="desk-avatar"><Icon name="house" /></span><div>{S.desktopName || 'Мой профиль'}<small>Гантели и дорожка</small></div><span className="desk-offline-dot" title="Локальное сохранение" /></div>
       </div>
     </aside>
-    <header className="desk-topbar"><div><span className="desk-breadcrumb">openGym</span><span className="desk-slash">/</span><b>{current}</b></div><div className={'desk-save ' + save.status} role="status"><Icon name={save.status === 'error' ? 'warning' : 'checkCircle'} /><span>{status}</span></div></header>
+    <header className="desk-topbar"><div><span className="desk-breadcrumb">openGym</span><span className="desk-slash">/</span><b>{current}</b></div><div>{!['off', 'error'].includes(voiceStatus) && <button className="desk-voice-control" title="Выключить микрофон" aria-label="Выключить микрофон из любого раздела" onClick={() => { void stopVoice() }}>{VOICE_LABELS[voiceStatus]} · Стоп</button>}<div className={'desk-save ' + save.status} role="status"><Icon name={save.status === 'error' ? 'warning' : 'checkCircle'} /><span>{status}</span></div></div></header>
     {searching && <div className="desk-command-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setSearching(false) }}>
       <div className="desk-command" role="dialog" aria-modal="true" aria-label="Быстрый переход" ref={commandRef} onKeyDown={e => {
         if (e.key === 'Tab') {

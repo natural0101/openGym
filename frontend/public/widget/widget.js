@@ -3,6 +3,9 @@ let current = null, previous = null
 const run = action => window.gymWidget.action(action).catch(() => { $('error').textContent = 'Не удалось выполнить действие. Открой openGym.' })
 function render(value) {
  current = value
+ const voiceLabels = {off: "Включить микрофон", connecting: "Подключение · стоп", listening: "Слушаю · выключить", thinking: "Думаю · выключить", speaking: "Говорю · выключить", error: "Голос: повторить"}
+ $("voice").textContent = voiceLabels[value.voiceStatus] || voiceLabels.off
+ $("voice").setAttribute("aria-pressed", String(![undefined,"off","error"].includes(value.voiceStatus)))
  document.querySelector('.widget').dataset.desktop = String(value.onDesktop)
  $('mascot').src = '../mascots/' + (value.buddy === 'cake' ? 'cake' : 'burger') + '.png'
  $('mascot').alt = value.buddy === 'cake' ? 'Тортик' : 'Бургер'
@@ -28,6 +31,7 @@ function tick() {
  $('secondary').textContent = left ? timer.kind === 'rest' ? 'Пропустить отдых' : 'Идёт разминка…' : 'Разминка · 2 минуты'
  $('secondary').disabled = left > 0 && timer.kind !== 'rest'
 }
+$('voice').onclick = () => run('voice')
 $('close').onclick = () => run('hide')
 $('buddy').onclick = () => run('toggle-buddy')
 $('open').onclick = () => run('open')

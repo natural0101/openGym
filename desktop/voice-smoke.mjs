@@ -1,0 +1,66 @@
+import {_electron as electron} from 'playwright'
+import {WebSocketServer} from 'ws'
+import assert from 'node:assert/strict'
+import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises'
+import path from 'node:path'
+const output=path.resolve('desktop/test-output');await mkdir(output,{recursive:true})
+const profile=await mkdtemp(path.join(output,'voice-smoke-'))
+const server=new WebSocketServer({host:'127.0.0.1',port:0});await new Promise(r=>server.once('listening',r))
+const fakeKey='opengym_voice_test_key_not_a_real_secret'
+let socket, inputBytes=0, settings, pending=new Map()
+const responses=[]
+server.on('connection',(ws,req)=>{assert.equal(req.headers.authorization,'Token '+fakeKey);socket=ws;ws.on('message',(data,binary)=>{if(binary){inputBytes+=data.length;return}const m=JSON.parse(data.toString());if(m.type==='Settings'){settings=m;ws.send(JSON.stringify({type:'SettingsApplied'}))}if(m.type==='FunctionCallResponse'){responses.push(m);const callback=pending.get(m.id);if(callback){pending.delete(m.id);callback(JSON.parse(m.content))}}})})
+const app=await electron.launch({args:['.','--use-fake-device-for-media-stream'],env:{...process.env,OPENGYM_TEST_DATA:profile,OPENGYM_VOICE_TEST_URL:'ws://127.0.0.1:'+server.address().port}})
+const checks=[],errors=[]
+const command=async(id,args)=>{const result=new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(Error('Command timed out '+id))},12000);pending.set(id,x=>{clearTimeout(timer);resolve(x)})});socket.send(JSON.stringify({type:'FunctionCallRequest',functions:[{id,name:'workout_action',arguments:JSON.stringify(args),client_side:true}]}));return result}
+try{
+ const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.getByRole('heading',{name:'Домашние тренировки',exact:true}).waitFor()
+ await page.getByRole('button',{name:'Голосовой напарник',exact:true}).click()
+ await page.getByRole('button',{name:'Начать разговор',exact:true}).click();await page.getByText('Сначала добавь ключ Deepgram ниже.',{exact:true}).waitFor();assert.equal(inputBytes,0)
+ await page.getByLabel('API-ключ Deepgram',{exact:true}).fill(fakeKey)
+ await page.getByRole('button',{name:'Сохранить ключ',exact:true}).click();await page.getByText('Ключ сохранён на этом компьютере. Теперь включи микрофон.',{exact:true}).waitFor()
+ assert(!(await readFile(path.join(profile,'voice-key.bin'))).includes(Buffer.from(fakeKey)))
+ checks.push('No key: no microphone/network. Key encrypted and never returned through IPC.')
+ await page.getByRole('button',{name:'Начать разговор',exact:true}).click();await page.getByText('Слушаю тебя',{exact:true}).waitFor()
+ for(let i=0;i<30&&inputBytes===0;i++)await page.waitForTimeout(100)
+ assert(inputBytes>0,'Actual AudioWorklet must send PCM');assert.equal(settings.agent.speak.provider.type,'cartesia');assert.deepEqual(settings.agent.listen.provider.language_hints,['ru'])
+ assert.equal(settings.agent.think.functions[0].defer_until_eot,true)
+ assert((await command('context',{action:'context'})).ok)
+ assert((await command('search',{action:'search',query:'беговая дорожка'})).matches.some(x=>x.exercise_id==='3666'))
+ const first=await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert(first.ok&&first.saved)
+ const disk=()=>readFile(path.join(profile,'training.json'),'utf8').then(JSON.parse)
+ assert.equal((await disk()).active.entries[0].sets.length,1)
+ assert((await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10})).saved)
+ assert.equal((await disk()).active.entries[0].sets.length,1)
+ assert((await command('edit',{action:'correct_set',reps:12})).saved);assert.equal((await disk()).active.entries[0].sets[0].r,12)
+ assert((await command('two',{action:'log_set',exercise_id:'0294',weight:6,reps:8})).saved)
+ assert((await command('undo',{action:'undo_set'})).saved);assert.equal((await disk()).active.entries[0].sets.length,1)
+ const invalid=await command('invalid',{action:'log_set',exercise_id:'0294',reps:10});assert.equal(invalid.ok,false);assert.equal((await disk()).active.entries[0].sets.length,1)
+ assert((await command('walk',{action:'log_set',exercise_id:'3666',minutes:10,speed:4})).saved)
+ const resting=await command('rest',{action:'rest',seconds:60});assert.equal(resting.seconds,60)
+ const opening=app.waitForEvent('window');await page.getByRole('button',{name:'Показать виджет на рабочем столе'}).click();const widget=await opening;await widget.waitForURL('**/widget/index.html');await widget.getByRole('button',{name:'Слушаю · выключить'}).waitFor()
+ assert(await widget.evaluate(()=>document.querySelector('.widget').getBoundingClientRect().bottom+6<=innerHeight))
+ assert((await command('stoprest',{action:'stop_rest'})).ok)
+ assert((await command('finish',{action:'finish'})).saved)
+ assert.equal((await disk()).workouts.length,1);assert.equal((await disk()).desktopBurger.remaining,90)
+ assert((await command('finish',{action:'finish'})).saved);assert.equal((await disk()).workouts.length,1)
+ checks.push('Tool path: search, durable set logging, duplicate protection, correction, undo, validation, treadmill, rest and finish; Burger rewarded once.')
+ socket.send(JSON.stringify({type:'ConversationText',role:'user',content:'Тестовая проверка: гантели пять килограммов, двенадцать повторов.'}))
+ socket.send(JSON.stringify({type:'ConversationText',role:'assistant',content:'Тестовая запись сохранена. Реальная история пользователя не изменяется.'}))
+ await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(output,'voice-conversation.png')})
+ await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>!w.webContents.getURL().includes('/widget/')).setSize(820,900))
+ await page.waitForTimeout(150);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(output,'voice-compact.png')})
+ socket.terminate();await page.getByText('Разговор прерван',{exact:true}).waitFor();assert(await page.evaluate(()=>window.openGymDesktop.voiceInfo()).then(x=>x.status==='error'))
+ checks.push('Connection loss becomes visible error; widget fits; compact 820px has no horizontal overflow.')
+ await page.getByRole('button',{name:'Начать разговор',exact:true}).click();await page.getByText('Слушаю тебя',{exact:true}).waitFor()
+ assert((await command('context-again',{action:'context'})).lastWorkout)
+ // Simulate a disk failure at the real IPC boundary. No success may be reported.
+ await app.evaluate(({ipcMain})=>{ipcMain.removeHandler('desktop:save');ipcMain.handle('desktop:save',()=>{throw Error('TEST disk unavailable')})})
+ const failed=await command('failure',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert.equal(failed.ok,false);assert.equal(failed.saved,false)
+ assert.equal((await disk()).active,null)
+ checks.push('Disk failure: tool returns saved=false, no fabricated confirmation and no disk mutation.')
+ await widget.getByRole('button',{name:'Слушаю · выключить'}).click();await page.getByText('Микрофон выключен',{exact:true}).waitFor()
+ const bytesAfterStop=inputBytes;await page.waitForTimeout(300);assert.equal(inputBytes,bytesAfterStop)
+ assert.equal(errors.length,0,errors.join('\n'))
+ const report={checks,inputBytes,rendererErrors:errors,profile,passed:true};await writeFile(path.join(output,'voice-smoke-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2))
+}finally{await app.close();for(const ws of server.clients)ws.terminate();await new Promise(r=>server.close(r))}

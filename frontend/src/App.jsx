@@ -43,6 +43,7 @@ import { DESKTOP } from './desktop/platform.js'
 import DesktopShell, { DesktopSaveError } from './desktop/DesktopShell.jsx'
 import DesktopHome from './desktop/DesktopHome.jsx'
 import DesktopSettings from './desktop/DesktopSettings.jsx'
+import DesktopVoice from './desktop/DesktopVoice.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -162,6 +163,7 @@ function Shell() {
               <Route path="/workout" element={DESKTOP ? <DesktopWorkout /> : <Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
+              {DESKTOP && <Route path="/voice" element={<DesktopVoice />} />}
               <Route path="/library" element={<Library />} />
               <Route path="/muscles" element={<Muscles />} />
               <Route path="/settings" element={DESKTOP ? <DesktopSettings /> : <Settings />} />

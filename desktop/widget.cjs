@@ -63,7 +63,7 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
   ipcMain.handle('desktop:widget-update', (event, value) => {
     if (!fromMain(event)) throw new Error('Untrusted sender')
     if (!value || typeof value.name !== 'string' || !Number.isFinite(value.done) || !Number.isFinite(value.total)) throw new Error('Invalid widget state')
-    state = { name: value.name.slice(0, 160), active: value.active === true, buddy: value.buddy === 'cake' ? 'cake' : 'burger', done: Math.max(0,value.done), total: Math.max(0,value.total),
+    state = { voiceStatus: state.voiceStatus || 'off', name: value.name.slice(0, 160), active: value.active === true, buddy: value.buddy === 'cake' ? 'cake' : 'burger', done: Math.max(0,value.done), total: Math.max(0,value.total),
       burger: value.burger && Number.isFinite(value.burger.remaining) ? { remaining: Math.max(0, Math.min(150, value.burger.remaining)), won: value.burger.won === true, scale: Math.max(0, Math.min(1.1, Number(value.burger.scale) || 0)) } : { remaining: 100, won: false, scale: 0.9 },
       timer: value.timer && Number.isFinite(value.timer.endsAt) ? { endsAt: value.timer.endsAt, label: String(value.timer.label).slice(0,100), kind: value.timer.kind === 'rest' ? 'rest' : 'work' } : null }
     publish()
@@ -72,11 +72,12 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
   ipcMain.handle('widget:action', (event, action) => {
     if (!fromWidget(event)) throw new Error('Untrusted sender')
     if (action === 'hide') { prefs.visible = false; remember(); widget.hide(); if (!mainWindow.isVisible()) presentMain(); return }
-    if (!['open','warmup','skip-rest','toggle-buddy'].includes(action)) throw new Error('Unknown widget action')
-    if (action === 'open') presentMain()
+    if (!['open','warmup','skip-rest','toggle-buddy','voice'].includes(action)) throw new Error('Unknown widget action')
+    if (action === 'open' || (action === 'voice' && ['off', 'error', undefined].includes(state.voiceStatus))) presentMain()
     mainWindow.webContents.send('desktop:widget-action', action)
   })
   return {
+    setVoiceStatus: status => { state.voiceStatus = status; publish() },
     isVisible: () => !!widget && !widget.isDestroyed() && widget.isVisible(),
     restore: async () => { try { prefs = { ...prefs, ...JSON.parse(await fs.readFile(prefsFile, 'utf8')) } } catch {}; delete prefs.pinned; if (prefs.visible) await show() },
     flush: async () => { await writes },

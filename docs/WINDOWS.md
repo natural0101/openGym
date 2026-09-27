@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.2.2-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.3.0-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. Choose **Подобрать домашний план** → **Гантели + дорожка**, inspect the routines and add them. This creates three strength routines and an optional walking session. Only unassigned Monday/Wednesday/Friday slots are filled; existing routines and history stay intact. The template is a starting point, not an individualized prescription. Choose your own comfortable dumbbell weight; change exercises and days in **Мой план**.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -60,3 +60,15 @@ Starts at 100% from the first launch of 1.2.0, without charging earlier missed d
 Burger visibly shrinks/grows in the app and desktop widget. At 0% it disappears and victory persists; later misses do not undo a completed challenge. This is a consistency game, independent of bodyweight data. The saved schedule is used to settle elapsed days on restart before any plan edits are applied. Progress is included in normal JSON backups.
 
 Developer checks: `npm --prefix frontend test -- src/desktop/burger-game.test.js`, `npm run test:desktop`, `npm run test:smoke`, `node desktop/burger-states-smoke.mjs`, `node desktop/desktop-host-smoke.mjs`. The last test briefly minimizes windows through the Windows shell and restores them afterwards to verify actual desktop hit testing and ordinary-window occlusion.
+
+## Voice companion (1.3.0)
+
+Open **Голосовой напарник** in the sidebar, save a Deepgram API key, then click **Начать разговор**. The key needs Voice Agent access and available credit. Russian STT (Flux Multilingual), the managed conversation model and managed Cartesia TTS use the same Deepgram account. No separate OpenAI or Cartesia key is required.
+
+The assistant can find exercises, start a session, record completed strength sets and treadmill minutes/speed, correct or undo a set in the current session, control rest and finish into history. Only finishing a nonempty current workout rewards Burger. The app acknowledges a change after the durable save resolves; replayed function IDs cannot add duplicate records. Unspecified weights/repetitions require clarification. Complex unilateral/drop-set edits and past-session edits remain in the normal editor.
+
+Use the microphone button in the desktop widget to start/stop. The widget stays on the desktop, behind normal windows. A visible widget keeps the conversation alive when the main window closes; the microphone status is visible in the widget. Stop explicitly to end the paid connection. Microphone access never starts automatically on launch.
+
+Audio and current/last-workout context are sent to Deepgram and its model providers while connected. Deepgram bills connection time, including pauses. Local training features still work offline. Conversation text is kept in memory only; training changes persist. The key is encrypted with Electron safeStorage/Windows, stored separately in voice-key.bin in the app profile, excluded from training JSON backups and never returned to the renderer. Re-enter it after moving to a different profile/computer.
+
+Focused checks: npm --prefix frontend test -- src/desktop/voice-actions.test.js; node desktop/voice-smoke.mjs. Voice smoke uses a local mock WebSocket server, synthetic microphone input and a separate profile; it does not use a real key. Live Deepgram tests are separate and explicitly documented in DESKTOP_QA.md.

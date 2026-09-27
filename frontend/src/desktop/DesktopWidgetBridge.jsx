@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { burgerDay, burgerView } from './burger-game.js'
 import { desktop } from './platform.js'
+import { useVoice, startVoice, stopVoice } from './voice-client.js'
 
 export default function DesktopWidgetBridge() {
   const S = useStore(s => s.S), timer = useUI(s => s.timer), work = useUI(s => s.work), nav = useNavigate()
@@ -25,6 +26,12 @@ export default function DesktopWidgetBridge() {
     return () => { clearInterval(id); window.removeEventListener('focus', refresh) }
   }, [])
   useEffect(() => desktop().onWidgetAction(action => {
+    if (action === 'voice') {
+      const v = useVoice.getState()
+      if (!['off', 'error'].includes(v.status)) { void stopVoice(); return }
+      if (!v.hasKey) { nav('/voice'); return }
+      void startVoice()
+    }
     if (action === 'open') nav(useStore.getState().S.active ? '/workout' : '/home')
     if (action === 'warmup') { const ui = useUI.getState(); if (!ui.timer && !ui.work) ui.startWork(120, 'Разминка с Тортиком') }
     if (action === 'skip-rest') useUI.getState().stopRest()

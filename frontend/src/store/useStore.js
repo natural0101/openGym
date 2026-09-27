@@ -147,6 +147,7 @@ export const useStore = create((set, get) => {
   // stamp it came with: re-stamping a read would make an unchanged copy look newer than a real
   // change made on another device, and push it over that change.
   const persist = (S, push = true, stamp = true) => {
+    let durableWrite
     if (stamp) S._ts = Date.now()
     registerCustom(S.customEx)
     try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) { if (!DESKTOP) throw e }
@@ -154,7 +155,8 @@ export const useStore = create((set, get) => {
     if (DESKTOP) {
       const sequence = ++saveSequence
       set({ desktopSave: { status: 'saving' } })
-      desktop().save(S).then(result => {
+      durableWrite = desktop().save(S)
+      durableWrite.then(result => {
         if (sequence === saveSequence) set({ desktopSave: { status: 'saved', at: result.savedAt } })
       }).catch(error => { if (sequence === saveSequence) set({ desktopSave: { status: 'error', message: error.message } }) })
     }
@@ -166,6 +168,7 @@ export const useStore = create((set, get) => {
       clearTimeout(pushTm)
       pushTm = setTimeout(() => get().pushState(), 1500)
     }
+    return durableWrite
   }
   // Boot's last step: from here on changes push, and one made during boot goes now.
   const finishBoot = (extra = {}) => {
@@ -347,7 +350,7 @@ export const useStore = create((set, get) => {
       if (DESKTOP) reconcileBurger(S)
       mut(S)
       if (DESKTOP) snapshotBurgerPlan(S)
-      persist(S, push)
+      return persist(S, push)
     },
     // A replace that is meant to reach the server (backup import, reset) is a deliberate
     // overwrite, not a change to merge: the push it arms goes without a baseRev.

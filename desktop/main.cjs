@@ -1,19 +1,20 @@
-const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker, screen, Tray, nativeImage } = require('electron')
+const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker, screen, Tray, nativeImage, safeStorage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { pathToFileURL } = require('node:url')
 const { createStorage, validateState, MAX_BYTES } = require('./storage.cjs')
 const { createMedia } = require('./media.cjs')
 const { createWidget } = require('./widget.cjs')
+const { createVoice } = require('./voice.cjs')
 
 // Test runs use their own directory and never touch a person's training history.
 if (process.env.OPENGYM_TEST_DATA && !app.isPackaged) app.setPath('userData', path.resolve(process.env.OPENGYM_TEST_DATA))
 protocol.registerSchemesAsPrivileged([{ scheme: 'opengym', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }])
 const single = app.requestSingleInstanceLock()
 if (!single) { app.quit() } else {
-  let win, storage, media, closing = false, awake = null, widgetController = null, quitting = false
+  let win, storage, media, closing = false, awake = null, widgetController = null, quitting = false, voice = null
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
-  app.on('before-quit', () => { quitting = true })
+  app.on('before-quit', () => { quitting = true; voice?.stop() })
   app.on('will-quit', () => widgetController?.dispose())
   app.on('window-all-closed', () => app.quit())
   app.whenReady().then(async () => {
@@ -45,8 +46,9 @@ if (!single) { app.quit() } else {
         }
       } catch { return new Response('Bad request', { status: 400 }) }
     })
-    session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
-    session.defaultSession.setPermissionCheckHandler(() => false)
+    const voicePermission = (wc, permission, details) => wc === win?.webContents && permission === 'media' && voice?.active() && (!details.mediaTypes || details.mediaTypes.every(t => t === 'audio')) && (!details.mediaType || details.mediaType === 'audio')
+    session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => callback(!!voicePermission(wc, permission, details)))
+    session.defaultSession.setPermissionCheckHandler((wc, permission, _origin, details) => !!voicePermission(wc, permission, details))
     const handle = (name, fn) => ipcMain.handle(name, async (event, ...args) => {
       if (!event.senderFrame || !event.senderFrame.url.startsWith('opengym://app/')) throw new Error('Untrusted frame')
       return fn(...args)
@@ -98,9 +100,15 @@ if (!single) { app.quit() } else {
     win = new BrowserWindow({
       width: 1380, height: 920, minWidth: 800, minHeight: 600, title: 'openGym', backgroundColor: '#fafafa',
       icon: path.join(dist, 'desktop-icon-512.png'), show: false,
-      webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
+      webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
     })
     widgetController = createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, mainWindow: win, dist })
+    voice = createVoice({ ipcMain, mainWindow: win, dataDir, safeStorage,
+      ...(!app.isPackaged && process.env.OPENGYM_TEST_DATA && /^ws:\/\/127\.0\.0\.1:\d+$/.test(process.env.OPENGYM_VOICE_TEST_URL || '') ? { endpoint: process.env.OPENGYM_VOICE_TEST_URL } : {}),
+      onStatus: status => widgetController.setVoiceStatus(status),
+    })
+    win.webContents.on('render-process-gone', () => voice.stop())
+    win.webContents.on('did-start-loading', () => voice.stop())
     win.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https:\/\/(github\.com|opengym\.duarte-santos\.ch)\//.test(url)) void shell.openExternal(url)
       return { action: 'deny' }
@@ -112,7 +120,7 @@ if (!single) { app.quit() } else {
       if (closing) return
       event.preventDefault()
       // Renderer saves are immediate IPC calls, not a delayed debounce; flush queued disk writes.
-      Promise.all([storage.flush(), widgetController.flush()]).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
+      Promise.all([storage.flush(), widgetController.flush()]).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
         if (response === 1) { closing = true; win.close() }
       })
