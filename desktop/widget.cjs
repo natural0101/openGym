@@ -5,7 +5,7 @@ const fs = require('node:fs/promises')
 // A read-only companion window. All training mutations stay in the main renderer/store.
 function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, mainWindow, dist }) {
   let widget = null, tray = null, prefs = { visible: false }, moveTimer = null
-  let state = { name: 'Тренировка дома', active: false, buddy: 'burger', done: 0, total: 0, timer: null, burger: { remaining: 100, won: false, scale: 0.9 } }
+  let state = { widgetMode: 'simple', widgetOpacity: 1, opacitySupported: false, motivation: { weekDone: 0, weekGoal: 3, todaySets: 0, headline: 'Сегодня — в своём темпе', growth: '' }, name: 'Тренировка дома', active: false, buddy: 'burger', done: 0, total: 0, timer: null, burger: { remaining: 100, won: false, scale: 0.9 } }
   const prefsFile = path.join(app.getPath('userData'), 'widget-preferences.json')
   let writes = Promise.resolve()
   const remember = () => {
@@ -13,7 +13,13 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
     writes = writes.catch(() => {}).then(async () => { await fs.writeFile(prefsFile + '.tmp', text); await fs.rename(prefsFile + '.tmp', prefsFile) }).catch(() => {})
   }
   const presentMain = () => { if (!mainWindow.isDestroyed()) { mainWindow.show(); if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus() } }
-  const publish = () => { if (widget && !widget.isDestroyed()) widget.webContents.send('widget:state', { ...state, onDesktop: isOnDesktop(widget) }) }
+  const publish = () => {
+    if (!widget || widget.isDestroyed() || widget.webContents.isDestroyed()) return
+    try { widget.webContents.send('widget:state', { ...state, onDesktop: isOnDesktop(widget) }); updateShape() }
+    catch { /* The renderer can disappear during application shutdown. */ }
+  }
+  // Electron opacity on an Explorer child produced blank screen pixels;
+  // pre-parent opacity reports success but remains opaque. Keep proven rendering.
   const ensureTray = () => {
     if (tray) return
     tray = new Tray(nativeImage.createFromPath(path.join(dist, 'desktop-icon-512.png')).resize({ width: 20, height: 20 }))
@@ -24,6 +30,28 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
       { label: 'Показать виджет', click: () => { void show() } },
       { type: 'separator' }, { label: 'Выйти', click: () => app.quit() },
     ]))
+  }
+    const rounded = (x, y, width, height, radius) => {
+      const rows = []
+      for (let row = 0; row < height; row++) {
+        const distance = row < radius ? radius - row - .5 : row >= height - radius ? row - (height - radius) + .5 : 0
+        const inset = distance ? Math.ceil(radius - Math.sqrt(radius * radius - distance * distance)) : 0
+        const previous = rows.at(-1)
+        if (previous && previous.x === x + inset && previous.width === width - inset * 2) previous.height++
+        else rows.push({ x: x + inset, y: y + row, width: width - inset * 2, height: 1 })
+      }
+      return rows
+    }
+  let shaping = Promise.resolve()
+  const updateShape = () => {
+    shaping = shaping.catch(() => {}).then(async () => {
+      const current = widget
+      if (!current || current.isDestroyed()) return
+      const contour = await current.webContents.executeJavaScript(`new Promise(resolve => requestAnimationFrame(() => { const r = document.querySelector('.widget').getBoundingClientRect(); resolve({ x:r.x, y:r.y, width:r.width, height:r.height }) }))`)
+      if (current.isDestroyed()) return
+      const box = { x:Math.round(contour.x), y:Math.round(contour.y), width:Math.ceil(contour.width), height:Math.ceil(contour.height) }
+      current.setShape([...rounded(box.x, box.y, box.width, box.height, 14), ...rounded(box.x + 5, box.y + 5, box.width, box.height, 14)])
+    }).catch(() => {})
   }
   const show = async () => {
     prefs.visible = true; remember(); ensureTray()
@@ -42,17 +70,6 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
     const contour = await widget.webContents.executeJavaScript(`document.fonts.ready.then(() => { const r = document.querySelector('.widget').getBoundingClientRect(); return { x:r.x, y:r.y, width:r.width, height:r.height } })`)
     // Clip the native window itself. Transparent child-window margins otherwise
     // expose Explorer's legacy wallpaper instead of the currently visible desktop.
-    const rounded = (x, y, width, height, radius) => {
-      const rows = []
-      for (let row = 0; row < height; row++) {
-        const distance = row < radius ? radius - row - .5 : row >= height - radius ? row - (height - radius) + .5 : 0
-        const inset = distance ? Math.ceil(radius - Math.sqrt(radius * radius - distance * distance)) : 0
-        const previous = rows.at(-1)
-        if (previous && previous.x === x + inset && previous.width === width - inset * 2) previous.height++
-        else rows.push({ x: x + inset, y: y + row, width: width - inset * 2, height: 1 })
-      }
-      return rows
-    }
     const box = { x:Math.round(contour.x), y:Math.round(contour.y), width:Math.ceil(contour.width), height:Math.ceil(contour.height) }
     widget.setShape([...rounded(box.x, box.y, box.width, box.height, 14), ...rounded(box.x + 5, box.y + 5, box.width, box.height, 14)])
     try { attachToDesktop(widget); publish() } catch (error) { widget.destroy(); prefs.visible = false; remember(); throw error }
@@ -63,7 +80,9 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
   ipcMain.handle('desktop:widget-update', (event, value) => {
     if (!fromMain(event)) throw new Error('Untrusted sender')
     if (!value || typeof value.name !== 'string' || !Number.isFinite(value.done) || !Number.isFinite(value.total)) throw new Error('Invalid widget state')
-    state = { voiceStatus: state.voiceStatus || 'off', name: value.name.slice(0, 160), active: value.active === true, buddy: value.buddy === 'cake' ? 'cake' : 'burger', done: Math.max(0,value.done), total: Math.max(0,value.total),
+    state = { widgetMode: value.widgetMode === 'buddy' ? 'buddy' : 'simple', widgetOpacity: 1, opacitySupported: false,
+      motivation: { weekDone: Math.max(0,Math.floor(Number(value.motivation?.weekDone)||0)), weekGoal: Math.max(1,Math.min(14,Math.floor(Number(value.motivation?.weekGoal)||3))), todaySets: Math.max(0,Math.floor(Number(value.motivation?.todaySets)||0)), headline: String(value.motivation?.headline || 'Сегодня — в своём темпе').slice(0,100), growth: String(value.motivation?.growth || '').slice(0,160) },
+      voiceStatus: state.voiceStatus || 'off', name: value.name.slice(0, 160), active: value.active === true, buddy: value.buddy === 'cake' ? 'cake' : 'burger', done: Math.max(0,value.done), total: Math.max(0,value.total),
       burger: value.burger && Number.isFinite(value.burger.remaining) ? { remaining: Math.max(0, Math.min(150, value.burger.remaining)), won: value.burger.won === true, scale: Math.max(0, Math.min(1.1, Number(value.burger.scale) || 0)) } : { remaining: 100, won: false, scale: 0.9 },
       timer: value.timer && Number.isFinite(value.timer.endsAt) ? { endsAt: value.timer.endsAt, label: String(value.timer.label).slice(0,100), kind: value.timer.kind === 'rest' ? 'rest' : 'work' } : null }
     publish()
@@ -77,6 +96,7 @@ function createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeI
     mainWindow.webContents.send('desktop:widget-action', action)
   })
   return {
+    show,
     setVoiceStatus: status => { state.voiceStatus = status; publish() },
     isVisible: () => !!widget && !widget.isDestroyed() && widget.isVisible(),
     restore: async () => { try { prefs = { ...prefs, ...JSON.parse(await fs.readFile(prefsFile, 'utf8')) } } catch {}; delete prefs.pinned; if (prefs.visible) await show() },

@@ -97,3 +97,11 @@ Available plate combinations are not configured yet; the assistant must not inve
 Desktop mutations are serialized against the last successfully saved state. Failed drafts and their voice receipts are discarded; subsequent commands cannot accidentally persist them. Manual completion, navigation and rest wait for successful saving. Close/export/restore request a renderer queue drain before the disk operation; missing confirmation blocks safe close.
 
 Voice startup and delayed command effects are scoped to a session. Cancelling during connection setup invalidates the pending start; an old command cannot stop a new conversation or start its rest timer. Cancellation after a completed disk write does not erase that already saved set. Strength logging skips warmups and incompatible timed rows; repeated undo finds the previous remaining voice set. Corrections reject incompatible fields and accept effort changes.
+
+## Motivation and calm widget (1.4.4)
+
+Today shows a configurable weekly goal (completed distinct training days; active sets count after finishing), factual encouragement and exercise comparisons against the most recent earlier session. Growth means more reps at identical weight or more weight without fewer reps. Approximate records, warmups and complex sets are excluded from comparisons. Rest days do not reset a streak.
+
+Settings > В своём темпе contains opt-in daily reminder time, Windows login startup and simple/companion widget mode. Login uses --widget-only: main hidden, mic off. Reminders run only while openGym runs, use silent Windows notifications plus a persistent in-app banner with Later30min/Today rest. Today's performed set suppresses reminders. Settings are off initially; Windows notification display depends on system settings.
+
+The simple widget is opaque. Electron opacity after Explorer parenting produced a white native window, while pre-parent opacity falsely reported success with unchanged opaque pixels. No ineffective transparency control is shipped.

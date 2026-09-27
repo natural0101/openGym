@@ -7,3 +7,20 @@
 .desktop-tag{font-size:8px;font-weight:500;align-self:center;white-space:nowrap}
 
 .mascot-stage,#mascot{height:118px}#voice{width:100%;border:1.5px solid #171711;border-radius:6px;padding:7px 6px;margin-bottom:7px;background:#fffdf5;font-size:11px;font-weight:650}#voice[aria-pressed=true]{background:#c3ef73}
+.widget[data-mode=simple]{border-color:#4d5049;box-shadow:3px 3px 0 #4d5049;background:#f6f3eb}
+.widget[data-mode=simple] header{border-bottom:1px solid #d5d6cd;font-weight:600}
+.widget[data-mode=simple] section{padding:18px 16px 16px;text-align:left}
+.widget[data-mode=simple] h1{font-size:16px;line-height:1.4;letter-spacing:0;font-weight:550;min-height:44px;margin-bottom:12px}
+.widget[data-mode=simple] #buddy,.widget[data-mode=simple] #rules{display:none}
+.widget[data-mode=simple] #speech{border:0;border-radius:0;background:none;padding:0;margin:0 0 18px;min-height:58px}
+.widget[data-mode=simple] #value{font-size:28px;font-weight:500}
+.widget[data-mode=simple] #detail{font-size:12px;max-height:34px;color:#52574d}
+.widget[data-mode=simple] #goal-label{font-size:11px;font-weight:450;margin-bottom:7px}
+.widget[data-mode=simple] .progress{border:0;height:5px;background:#dedfd6;margin-bottom:8px}
+.widget[data-mode=simple] .progress i{background:#66865c}
+#growth{display:none}
+.widget[data-mode=simple] #growth{display:block;font-size:11px;color:#52574d;min-height:16px;margin:0 0 18px}
+.widget[data-mode=simple] #open{box-shadow:none;background:#e1e8da;border-color:#b3bdaa;font-weight:550}
+.widget[data-mode=simple] #voice,.widget[data-mode=simple] #secondary{border-color:#bfc3b6;font-weight:450;background:transparent}
+.widget[data-mode=simple] #voice[aria-pressed=true]{background:#dce9d3}
+[hidden]{display:none!important}

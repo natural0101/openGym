@@ -26,6 +26,15 @@ contextBridge.exposeInMainWorld('openGymDesktop', Object.freeze({
   importBackup: () => ipcRenderer.invoke('desktop:import'),
   restoreBackup: state => ipcRenderer.invoke('desktop:restore', state),
   info: () => ipcRenderer.invoke('desktop:info'),
+  motivationInfo: () => ipcRenderer.invoke('desktop:motivation-info'),
+  startupConfigure: enabled => ipcRenderer.invoke('desktop:startup-configure', enabled),
+  reminderConfigure: patch => ipcRenderer.invoke('desktop:reminder-configure', patch),
+  reminderAction: action => ipcRenderer.invoke('desktop:reminder-action', action),
+  onMotivationChanged: fn => {
+    const listener = () => fn()
+    ipcRenderer.on('desktop:motivation-changed', listener)
+    return () => ipcRenderer.removeListener('desktop:motivation-changed', listener)
+  },
   openDataFolder: () => ipcRenderer.invoke('desktop:folder'),
   mediaStatus: () => ipcRenderer.invoke('desktop:media-status'),
   downloadMedia: () => ipcRenderer.invoke('desktop:media-start'),

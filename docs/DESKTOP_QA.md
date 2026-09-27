@@ -146,3 +146,13 @@ Rollback executable retained at outputs/openGym-Setup-1.4.1-x64.exe; run with `/
 ## 1.4.3 compact Today cards — 2026-09-27
 
 Exercise cards default to collapsed summaries. Expanded details show each completed set, notes (including approximate reps), mixed-value groups and a route to edit/add sets. Removed repeated saved labels. Verified in real Electron and installed1.4.3: three cards, keyboard expansion to five rows, approximation note, edit route, no horizontal overflow at820/1400px, zero renderer errors. Profile deep-equaled pre-upgrade snapshot. NSIS exit0. Local evidence script desktop/test-output/compact-today-check.mjs and screenshots outputs/openGym-compact-cards.png, outputs/openGym-expanded-card.png. Existing voice timer behavior unchanged. Rollback: outputs/openGym-Setup-1.4.2-x64.exe /S; snapshot desktop/test-output/before-compact-upgrade.json.
+
+## 1.4.4 motivation — 2026-09-27
+
+52 focused desktop/store tests and37 native tests PASS. motivation-smoke.mjs verifies baseline, exact +2-rep comparison, weekly goal persistence, unchanged workouts after settings and post-finish praise. voice-smoke.mjs PASS after new widget/reminders. Mocked-clock reminder cases cover opt-in, midnight, once/day, activity, restart, snooze and concurrent disable/rest.
+
+Actual Electron --widget-only smoke passed three launches: main hidden, widget visible, mic off; Later and Today rest persist, no banner after same-day restart. Native desktop widget physical screenshot and HWND checks passed: child of Explorer, not topmost, ordinary window covers it, both modes, no blank margins. Native opacity FAILED and was removed; final opaque screenshot simple-widget-final-desktop.png visually inspected. Teardown publication guards prevent sending to destroyed widget webContents.
+
+NSIS1.4.4 exit0; installed executable1.4.4 verified. Training deep-equaled before-motivation-upgrade.json. Windows startup registration true/false read-back passed and original disabled state restored. Reminders stayed disabled, mic off. Installed Today/settings/widget screenshots inspected. Full Windows sign-out/sign-in and actual OS toast visibility not tested; persisted banner/actions and launch flag tested. Evidence under ignored desktop/test-output: motivation-smoke-report.json, motivation-login-smoke.json, simple-widget-report.json, motivation-installed-report.json.
+
+Rollback: retained outputs/openGym-Setup-1.4.3-x64.exe /S. Profile snapshot desktop/test-output/before-motivation-upgrade.json. No migration of user training; preserve later records before any restore.

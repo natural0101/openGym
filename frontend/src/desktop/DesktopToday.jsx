@@ -8,6 +8,7 @@ import { exerciseLabel } from './exercise-labels.js'
 import { useVoice, startVoice, stopVoice, VOICE_LABELS } from './voice-client.js'
 import { applyVoiceAction } from './voice-actions.js'
 import TrainingBuddy from './TrainingBuddy.jsx'
+import MotivationPanel from './MotivationPanel.jsx'
 import './DesktopToday.css'
 
 const time = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
@@ -65,6 +66,7 @@ export default function DesktopToday() {
   return <div className="workspace-home today-page">
     <div className="workspace-heading"><div><span className="neo-kicker">Твой дневник</span><h1>{isToday ? 'Сегодня' : 'Моя тренировка'}</h1><p>То, что ты сделал. По одному подходу.</p></div><button className="btn" onClick={() => nav('/history')}>История занятий →</button></div>
     <div className="today-date"><button className="btn" aria-label="Предыдущий день" onClick={() => move(-1)}>←</button><label><span>{new Date(day + 'T12:00:00').toLocaleDateString('ru-RU', { weekday: 'long' })}</span><input aria-label="Дата тренировки" type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value) }} /></label><button className="btn" aria-label="Следующий день" onClick={() => move(1)}>→</button>{!isToday && <button className="btn" onClick={() => setDay(today)}>К сегодняшнему дню</button>}<span className="today-count">Записано подходов: {completed.length}</span></div>
+    {isToday && <MotivationPanel />}
     <div className="today-layout"><div className="today-main">
       <section className="today-voice" aria-label="Запись голосом"><div><h2>Скажи, что сделал</h2><p>«Жим гантелей, 10 килограммов, 12 повторов». Подход появится ниже.</p></div><div className="today-voice-actions">{voice.hasKey ? <button className={'btn ' + (listening ? '' : 'primary')} disabled={voice.busy} onClick={() => { if (!listening) setDay(today); void (listening ? stopVoice() : startVoice()) }}>{listening ? 'Выключить микрофон' : 'Начать разговор'}</button> : <button className="btn primary" onClick={() => nav('/voice')}>Настроить голос</button>}<span role="status">{VOICE_LABELS[voice.status]}</span></div>
         {!isToday && <p className="today-note">Голос записывает в текущую тренировку за сегодня. Эта дата — просмотр истории.</p>}

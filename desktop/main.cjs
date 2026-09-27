@@ -1,4 +1,4 @@
-const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker, screen, Tray, nativeImage, safeStorage } = require('electron')
+const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell, Menu, session, powerSaveBlocker, screen, Tray, nativeImage, safeStorage, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 const { pathToFileURL } = require('node:url')
@@ -7,6 +7,7 @@ const { createMedia } = require('./media.cjs')
 const { createWidget } = require('./widget.cjs')
 const { createVoice } = require('./voice.cjs')
 const { createRendererFlush } = require('./renderer-flush.cjs')
+const { createReminder, dayOf } = require('./reminder.cjs')
 
 // Test runs use their own directory and never touch a person's training history.
 if (process.env.OPENGYM_TEST_DATA && !app.isPackaged) app.setPath('userData', path.resolve(process.env.OPENGYM_TEST_DATA))
@@ -15,10 +16,12 @@ const single = app.requestSingleInstanceLock()
 if (!single) { app.quit() } else {
   let win, storage, media, closing = false, awake = null, widgetController = null, quitting = false, voice = null
   let closePending = false
+  let reminder = null, reminderTimer, reminderError = '', reminderNotification = null
+  const widgetOnly = process.argv.includes('--widget-only')
   const flushRenderer = createRendererFlush(ipcMain, () => win)
-  app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
+  app.on('second-instance', (_event, argv) => { if (argv.includes('--widget-only')) { void widgetController?.show(); return }; if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus() } })
   app.on('before-quit', () => { quitting = true; voice?.stop() })
-  app.on('will-quit', () => widgetController?.dispose())
+  app.on('will-quit', () => { clearInterval(reminderTimer); reminder?.dispose(); reminderNotification?.close(); widgetController?.dispose() })
   app.on('window-all-closed', () => app.quit())
   app.whenReady().then(async () => {
     app.setAppUserModelId('com.natural0101.opengym')
@@ -61,7 +64,10 @@ if (!single) { app.quit() } else {
       validateState(state)
       if (state.active && state.keepAwake !== false && awake == null) awake = powerSaveBlocker.start('prevent-display-sleep')
       if ((!state.active || state.keepAwake === false) && awake != null) { powerSaveBlocker.stop(awake); awake = null }
-      return storage.write(state)
+      return storage.write(state).then(result => {
+        void reminder?.check().catch(() => { reminderError = 'Не удалось обновить напоминание после сохранения тренировки.' })
+        return result
+      })
     })
     handle('desktop:info', () => ({ version: app.getVersion(), dataDir, backupDir: storage.backupDir, packaged: app.isPackaged }))
     handle('desktop:folder', () => shell.openPath(dataDir))
@@ -106,6 +112,34 @@ if (!single) { app.quit() } else {
       icon: path.join(dist, 'desktop-icon-512.png'), show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
     })
+    const openWorkout = () => { if (!win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); win.webContents.send('desktop:widget-action', 'open') } }
+    const loginOptions = { path: process.execPath, args: ['--widget-only'] }
+    const startupInfo = () => ({ enabled: app.getLoginItemSettings(loginOptions).openAtLogin, available: process.platform === 'win32' && app.isPackaged })
+    const publishMotivation = () => { if (!win.isDestroyed()) win.webContents.send('desktop:motivation-changed') }
+    const motivationHandle = (name, fn) => ipcMain.handle(name, (event, ...args) => {
+      if (event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || !event.senderFrame.url.startsWith('opengym://app/')) throw Error('Untrusted sender')
+      return fn(...args)
+    })
+    reminder = createReminder({ filePath: path.join(dataDir, 'reminder-preferences.json'), readTraining: async () => (await storage.read()).state, onOpen: openWorkout, onChange: publishMotivation,
+      notify: () => {
+        if (!Notification.isSupported()) return
+        reminderNotification?.close()
+        reminderNotification = new Notification({ title: 'Время для себя', body: 'Есть силы на небольшую тренировку? Открой openGym. Можно отложить на полчаса или выбрать день отдыха.', icon: path.join(dist, 'desktop-icon-512.png'), silent: true })
+        reminderNotification.on('click', openWorkout)
+        reminderNotification.show()
+      },
+    })
+    try { await reminder.load() } catch { reminderError = 'Не удалось прочитать настройки напоминаний. Напоминания выключены; сохрани настройки заново.' }
+    motivationHandle('desktop:motivation-info', () => { const prefs = reminder.info(); return { startup: startupInfo(), reminder: { ...prefs, pending: prefs.enabled && prefs.pendingDay === dayOf(new Date()) }, error: reminderError } })
+    motivationHandle('desktop:startup-configure', enabled => {
+      if (typeof enabled !== 'boolean' || !startupInfo().available) throw Error('Автозапуск доступен в установленном приложении для Windows.')
+      app.setLoginItemSettings({ ...loginOptions, openAtLogin: enabled })
+      const result = startupInfo()
+      if (result.enabled !== enabled) throw Error('Windows не подтвердила изменение автозапуска.')
+      publishMotivation(); return result
+    })
+    motivationHandle('desktop:reminder-configure', async patch => { const result = await reminder.configure(patch); reminderError = ''; publishMotivation(); return result })
+    motivationHandle('desktop:reminder-action', async action => { const result = await reminder.action(action); reminderNotification?.close(); return result })
     widgetController = createWidget({ app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, mainWindow: win, dist })
     voice = createVoice({ ipcMain, mainWindow: win, dataDir, safeStorage,
       ...(!app.isPackaged && process.env.OPENGYM_TEST_DATA && /^ws:\/\/127\.0\.0\.1:\d+$/.test(process.env.OPENGYM_VOICE_TEST_URL || '') ? { endpoint: process.env.OPENGYM_VOICE_TEST_URL } : {}),
@@ -123,19 +157,23 @@ if (!single) { app.quit() } else {
     })
     win.webContents.on('will-navigate', (event, url) => { if (!url.startsWith('opengym://app/')) event.preventDefault() })
     win.webContents.on('will-attach-webview', event => event.preventDefault())
-    win.once('ready-to-show', () => win.show())
+    win.once('ready-to-show', () => { if (!widgetOnly) win.show() })
     win.on('close', event => {
       if (closing) return
       event.preventDefault()
       if (closePending) return
       closePending = true
       // Drain the renderer transaction queue before inspecting the disk queue.
-      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
+      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush(), reminder.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
         if (response === 1) { closing = true; win.close() }
       }).finally(() => { closePending = false })
     })
     await win.loadURL('opengym://app/index.html')
     await widgetController.restore()
+    if (widgetOnly) await widgetController.show()
+    const checkReminder = () => { void reminder.check().catch(() => { reminderError = 'Не удалось проверить или сохранить напоминание. Проверь доступ к папке данных.'; publishMotivation() }) }
+    reminderTimer = setInterval(checkReminder, 30000)
+    checkReminder()
   }).catch(error => { dialog.showErrorBox('openGym — ошибка запуска', error.message); app.quit() })
 }
