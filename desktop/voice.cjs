@@ -8,6 +8,12 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
   const keyFile = path.join(dataDir, 'voice-key.bin')
   let socket = null, sessionId = null, ready = false, interval, deadline, current = 'off'
   const pending = new Map(), finished = new Map()
+  // Conversation context stays in memory across disconnects, never in logs or backups.
+  const history = []
+  const remember = item => {
+    history.push(item)
+    while (history.length > 60 || JSON.stringify(history).length > 50000) history.shift()
+  }
   const emit = payload => { if (!mainWindow.isDestroyed()) mainWindow.webContents.send('voice:event', { ...payload, sessionId }) }
   const state = (status, message = '') => { current = status; emit({ type: 'status', status, message }); onStatus(status) }
   const send = message => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message)) }
@@ -32,7 +38,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     await fs.writeFile(keyFile + '.tmp', bytes, { mode: 0o600 }); await fs.rename(keyFile + '.tmp', keyFile)
     return { hasKey: true }
   })
-  handle('voice:forget', async () => { stop(); await fs.rm(keyFile, { force: true }); return { hasKey: false } })
+  handle('voice:forget', async () => { stop(); history.length = 0; await fs.rm(keyFile, { force: true }); return { hasKey: false } })
   handle('voice:start', async sampleRate => {
     if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000) throw Error('Неподдерживаемая частота микрофона.')
     if (socket) throw Error('Голосовой разговор уже запущен.')
@@ -42,7 +48,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     const ws = socket = new WebSocket(endpoint, { headers: { Authorization: `Token ${key}` }, handshakeTimeout: 15000, maxPayload: 1024 * 1024 })
     key = null
     deadline = setTimeout(() => stop('Deepgram не подтвердил настройки. Проверь ключ, баланс и доступ к Voice Agent.', true), 20000)
-    ws.on('open', () => { if (socket === ws) send(settings(sampleRate)) })
+    ws.on('open', () => { if (socket === ws) send(settings(sampleRate, [...history])) })
     ws.on('unexpected-response', (_request, response) => { response.resume(); if (socket === ws) stop(response.statusCode === 401 || response.statusCode === 403 ? 'Deepgram отклонил ключ или доступ к Voice Agent.' : `Deepgram недоступен (HTTP ${response.statusCode}). Попробуй подключиться ещё раз.`, true) })
     ws.on('error', () => { if (socket === ws) stop('Нет соединения с Deepgram. Проверь интернет и повтори подключение.', true) })
     ws.on('close', () => { if (socket === ws) stop('Разговор отключён. Подходы сохранены; для продолжения включи микрофон.', true) })
@@ -53,7 +59,11 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
       if (event.type === 'SettingsApplied') { clearTimeout(deadline); ready = true; state('listening'); interval = setInterval(() => send({ type: 'KeepAlive' }), 5000) }
       if (event.type === 'UserStartedSpeaking') { emit({ type: 'interrupt' }); state('listening') }
       if (event.type === 'AgentThinking') state('thinking')
-      if (event.type === 'ConversationText' && ['user', 'assistant'].includes(event.role)) emit({ type: 'transcript', role: event.role, text: String(event.content || '').slice(0, 6000) })
+      if (event.type === 'ConversationText' && ['user', 'assistant'].includes(event.role)) {
+        const text = String(event.content || '').slice(0, 6000)
+        remember({ type: 'History', role: event.role, content: text })
+        emit({ type: 'transcript', role: event.role, text })
+      }
       if (event.type === 'AgentStartedSpeaking') state('speaking')
       if (event.type === 'AgentAudioDone') emit({ type: 'audio-done' })
       if (event.type === 'Error') stop(`Deepgram: ${String(event.code || 'ошибка сервиса').slice(0, 90)}. ${String(event.description || '').replace(/[a-z0-9]{32,}/gi, '[скрыто]').slice(0, 400)}`, true)
@@ -67,7 +77,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
         if (pending.has(fn.id)) continue
         if (fn.name !== 'workout_action' || typeof fn.arguments !== 'string' || fn.arguments.length > 8000) { send({ type: 'FunctionCallResponse', id: fn.id, name: fn.name, content: JSON.stringify({ ok: false, error: 'Недопустимая команда.' }) }); continue }
         const timer = setTimeout(() => { if (pending.has(fn.id)) stop('Не получено подтверждение записи. Проверь журнал перед повтором команды.', true) }, 20000)
-        pending.set(fn.id, { timer, signature: fn.thought_signature })
+        pending.set(fn.id, { timer, signature: fn.thought_signature, arguments: fn.arguments })
         emit({ type: 'command', id: fn.id, arguments: fn.arguments })
       }
     })
@@ -84,6 +94,7 @@ function createVoice({ ipcMain, mainWindow, dataDir, safeStorage, endpoint = 'ws
     const text = JSON.stringify(result); if (text.length > 60000) throw Error('Ответ слишком большой.')
     const item = pending.get(callId); clearTimeout(item.timer); pending.delete(callId)
     const response = { type: 'FunctionCallResponse', id: callId, name: 'workout_action', content: text, ...(item.signature ? { thought_signature: item.signature } : {}) }
+    remember({ type: 'History', function_calls: [{ id: callId, name: 'workout_action', client_side: true, arguments: item.arguments, response: text }] })
     finished.set(callId, response); if (finished.size > 500) finished.delete(finished.keys().next().value)
     send(response); return true
   })

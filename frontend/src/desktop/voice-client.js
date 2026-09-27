@@ -19,6 +19,10 @@ function release() {
 }
 export async function refreshVoice() { const info = await desktop().voiceInfo(); useVoice.setState({ hasKey: info.hasKey }); return info }
 export async function stopVoice() { release(); useVoice.setState({ status: 'off', busy: false }); await desktop().voiceStop() }
+async function failVoice(error) {
+  await stopVoice().catch(() => {})
+  useVoice.setState({ error, status: 'error' })
+}
 export async function startVoice() {
   if (useVoice.getState().busy || !['off', 'error'].includes(useVoice.getState().status)) return
   useVoice.setState({ busy: true, error: '', status: 'connecting' })
@@ -35,10 +39,10 @@ export async function startVoice() {
     const acquired = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }, video: false })
     if (token !== generation) { acquired.getTracks().forEach(t => t.stop()); return }
     stream = acquired
-    stream.getAudioTracks().forEach(track => { track.onended = () => { void stopVoice(); useVoice.setState({ error: 'Микрофон отключён. Подключи его и начни разговор снова.', status: 'error' }) } })
+    stream.getAudioTracks().forEach(track => { track.onended = () => { void failVoice('Микрофон отключён. Подключи его и начни разговор снова.') } })
     source = context.createMediaStreamSource(stream); capture = new AudioWorkletNode(context, 'gym-voice-capture'); gain = context.createGain(); gain.gain.value = 0
     source.connect(capture); capture.connect(gain); gain.connect(context.destination)
-    capture.port.onmessage = event => { if (token === generation) desktop().voiceAudio(session.sessionId, new Uint8Array(event.data)).catch(() => { void stopVoice() }) }
+    capture.port.onmessage = event => { if (token === generation) desktop().voiceAudio(session.sessionId, new Uint8Array(event.data)).catch(() => { if (token === generation) void failVoice('Не удалось передать звук. Включи микрофон повторно; беседа сохранена до выхода из приложения.') }) }
   } catch (error) {
     if (token !== generation) return
     release(); await desktop().voiceStop().catch(() => {})

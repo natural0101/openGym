@@ -4,7 +4,7 @@ An offline, single-profile Windows x64 application built from openGym 1.3.8. The
 
 ## Install and train
 
-1. Run `openGym-Setup-1.3.0-x64.exe`. Installation is per-user and does not need administrator rights.
+1. Run `openGym-Setup-1.3.1-x64.exe`. Installation is per-user and does not need administrator rights.
 2. Open **openGym** from the Start menu or desktop shortcut.
 3. Choose **Подобрать домашний план** → **Гантели + дорожка**, inspect the routines and add them. This creates three strength routines and an optional walking session. Only unassigned Monday/Wednesday/Friday slots are filled; existing routines and history stay intact. The template is a starting point, not an individualized prescription. Choose your own comfortable dumbbell weight; change exercises and days in **Мой план**.
 4. In **Настройки → Упражнения офлайн**, download the media once. The app and text instructions already work without this; the download adds 1,324 images and 1,324 animations. Interrupted downloads resume.
@@ -72,3 +72,8 @@ Use the microphone button in the desktop widget to start/stop. The widget stays 
 Audio and current/last-workout context are sent to Deepgram and its model providers while connected. Deepgram bills connection time, including pauses. Local training features still work offline. Conversation text is kept in memory only; training changes persist. The key is encrypted with Electron safeStorage/Windows, stored separately in voice-key.bin in the app profile, excluded from training JSON backups and never returned to the renderer. Re-enter it after moving to a different profile/computer.
 
 Focused checks: npm --prefix frontend test -- src/desktop/voice-actions.test.js; node desktop/voice-smoke.mjs. Voice smoke uses a local mock WebSocket server, synthetic microphone input and a separate profile; it does not use a real key. Live Deepgram tests are separate and explicitly documented in DESKTOP_QA.md.
+
+
+### Voice continuity (1.3.1)
+
+Section navigation and reopening the main window from the widget preserve the microphone connection. Manual reconnect supplies the recent conversation and confirmed command results to Deepgram; this context stays in memory only until the app exits. Saved training remains on disk. Recording or finishing a workout does not request microphone shutdown. Provider/microphone failures show an error instead of silently displaying an ordinary stop.

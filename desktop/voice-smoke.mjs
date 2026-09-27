@@ -7,9 +7,9 @@ const output=path.resolve('desktop/test-output');await mkdir(output,{recursive:t
 const profile=await mkdtemp(path.join(output,'voice-smoke-'))
 const server=new WebSocketServer({host:'127.0.0.1',port:0});await new Promise(r=>server.once('listening',r))
 const fakeKey='opengym_voice_test_key_not_a_real_secret'
-let socket, inputBytes=0, settings, pending=new Map()
+let socket, inputBytes=0, settings, pending=new Map(), connections=0
 const responses=[]
-server.on('connection',(ws,req)=>{assert.equal(req.headers.authorization,'Token '+fakeKey);socket=ws;ws.on('message',(data,binary)=>{if(binary){inputBytes+=data.length;return}const m=JSON.parse(data.toString());if(m.type==='Settings'){settings=m;ws.send(JSON.stringify({type:'SettingsApplied'}))}if(m.type==='FunctionCallResponse'){responses.push(m);const callback=pending.get(m.id);if(callback){pending.delete(m.id);callback(JSON.parse(m.content))}}})})
+server.on('connection',(ws,req)=>{connections++;assert.equal(req.headers.authorization,'Token '+fakeKey);socket=ws;ws.on('message',(data,binary)=>{if(binary){inputBytes+=data.length;return}const m=JSON.parse(data.toString());if(m.type==='Settings'){settings=m;ws.send(JSON.stringify({type:'SettingsApplied'}))}if(m.type==='FunctionCallResponse'){responses.push(m);const callback=pending.get(m.id);if(callback){pending.delete(m.id);callback(JSON.parse(m.content))}}})})
 const app=await electron.launch({args:['.','--use-fake-device-for-media-stream'],env:{...process.env,OPENGYM_TEST_DATA:profile,OPENGYM_VOICE_TEST_URL:'ws://127.0.0.1:'+server.address().port}})
 const checks=[],errors=[]
 const command=async(id,args)=>{const result=new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(Error('Command timed out '+id))},12000);pending.set(id,x=>{clearTimeout(timer);resolve(x)})});socket.send(JSON.stringify({type:'FunctionCallRequest',functions:[{id,name:'workout_action',arguments:JSON.stringify(args),client_side:true}]}));return result}
@@ -25,6 +25,13 @@ try{
  for(let i=0;i<30&&inputBytes===0;i++)await page.waitForTimeout(100)
  assert(inputBytes>0,'Actual AudioWorklet must send PCM');assert.equal(settings.agent.speak.provider.type,'cartesia');assert.deepEqual(settings.agent.listen.provider.language_hints,['ru'])
  assert.equal(settings.agent.think.functions[0].defer_until_eot,true)
+ const initialConnections=connections
+ for(const route of ['/history','/workout','/settings','/home','/voice']) {
+   await page.evaluate(route=>location.hash=route,route);await page.waitForTimeout(100)
+   assert.equal((await page.evaluate(()=>window.openGymDesktop.voiceInfo())).status,'listening','Navigation must not stop voice: '+route)
+ }
+ assert.equal(connections,initialConnections)
+ checks.push('Same live connection survives history/workout/settings/home/voice navigation.')
  assert((await command('context',{action:'context'})).ok)
  assert((await command('search',{action:'search',query:'беговая дорожка'})).matches.some(x=>x.exercise_id==='3666'))
  const first=await command('one',{action:'log_set',exercise_id:'0294',weight:5,reps:10});assert(first.ok&&first.saved)
@@ -40,6 +47,11 @@ try{
  const resting=await command('rest',{action:'rest',seconds:60});assert.equal(resting.seconds,60)
  const opening=app.waitForEvent('window');await page.getByRole('button',{name:'Показать виджет на рабочем столе'}).click();const widget=await opening;await widget.waitForURL('**/widget/index.html');await widget.getByRole('button',{name:'Слушаю · выключить'}).waitFor()
  assert(await widget.evaluate(()=>document.querySelector('.widget').getBoundingClientRect().bottom+6<=innerHeight))
+ await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>!w.webContents.getURL().includes('/widget/')).close())
+ await page.waitForTimeout(200);await widget.getByRole('button',{name:'Вернуться к тренировке ↗'}).click()
+ await page.waitForTimeout(200);assert.equal((await page.evaluate(()=>window.openGymDesktop.voiceInfo())).status,'listening');assert.equal(connections,initialConnections)
+ await page.getByRole('button',{name:'Голосовой напарник',exact:true}).click()
+ checks.push('Closing main window and reopening active workout from desktop widget preserves the same microphone session.')
  assert((await command('stoprest',{action:'stop_rest'})).ok)
  assert((await command('finish',{action:'finish'})).saved)
  assert.equal((await disk()).workouts.length,1);assert.equal((await disk()).desktopBurger.remaining,90)
@@ -53,6 +65,10 @@ try{
  socket.terminate();await page.getByText('Разговор прерван',{exact:true}).waitFor();assert(await page.evaluate(()=>window.openGymDesktop.voiceInfo()).then(x=>x.status==='error'))
  checks.push('Connection loss becomes visible error; widget fits; compact 820px has no horizontal overflow.')
  await page.getByRole('button',{name:'Начать разговор',exact:true}).click();await page.getByText('Слушаю тебя',{exact:true}).waitFor()
+ assert(settings.agent.context.messages.some(m=>m.role==='user'&&m.content.includes('пять килограммов')))
+ assert(settings.agent.context.messages.some(m=>m.function_calls?.some(f=>f.response.includes('saved'))))
+ assert.equal(settings.agent.greeting,'Продолжим с того места, где остановились.')
+ checks.push('Reconnect restores speech and confirmed tool history, without resetting greeting or repeating saved sets.')
  assert((await command('context-again',{action:'context'})).lastWorkout)
  // Simulate a disk failure at the real IPC boundary. No success may be reported.
  await app.evaluate(({ipcMain})=>{ipcMain.removeHandler('desktop:save');ipcMain.handle('desktop:save',()=>{throw Error('TEST disk unavailable')})})

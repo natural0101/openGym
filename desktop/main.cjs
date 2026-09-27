@@ -108,7 +108,11 @@ if (!single) { app.quit() } else {
       onStatus: status => widgetController.setVoiceStatus(status),
     })
     win.webContents.on('render-process-gone', () => voice.stop())
-    win.webContents.on('did-start-loading', () => voice.stop())
+    // HashRouter changes also emit did-start-loading. Only a new main-frame
+    // document invalidates the microphone renderer; changing tabs must not.
+    win.webContents.on('did-start-navigation', details => {
+      if (details.isMainFrame && !details.isSameDocument) voice.stop()
+    })
     win.webContents.setWindowOpenHandler(({ url }) => {
       if (/^https:\/\/(github\.com|opengym\.duarte-santos\.ch)\//.test(url)) void shell.openExternal(url)
       return { action: 'deny' }

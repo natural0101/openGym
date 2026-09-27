@@ -93,3 +93,16 @@ Remaining limits: real human speech under treadmill noise, accents and microphon
 Provider references checked 2026-09-27: https://developers.deepgram.com/docs/voice-agent-tts-models (managed Cartesia), /docs/voice-agent-llm-models, /docs/flux/language-prompting, /docs/voice-agent-function-call-request and /docs/voice-agent-function-call-response. Flux rejects deprecated agent.language, so language_hints=[ru] is used instead.
 
 Installed verification: NSIS 1.3.0 /S exited 0; installed EXE reported packaged=true/version=1.3.0. Live Deepgram accepted the saved key and returned PCM audio both before and after full app restart. All original training fields except the save timestamp deep-equal the pre-upgrade snapshot. Actual Windows screen capture: outputs/openGym-Voice-Installed.png in the workspace output directory. Installed widget native parent, no-topmost, hit testing, ordinary-window occlusion and 12,999 unchanged static surrounding samples passed; actual pink Cake widget and microphone button were visually inspected. Microphone was stopped after verification.
+
+
+## 1.3.1 — voice continuity, 2026-09-27
+
+Reproduced: did-start-loading fires for HashRouter changes, and the old handler stopped voice. A navigation probe observed status=off. Changed the handler to stop only for main-frame document navigation. This proves a navigation bug; it does not establish the cause of the user-reported stop immediately after saying to record a set.
+
+Voice integration smoke passed: five routes and widget reopen retain the same socket; tool persistence/deduplication, reconnect history, disconnect reporting and failed disk writes pass with no renderer errors. Real Deepgram accepted conversation plus completed-function history on reconnect and returned the continuation greeting. Synthesized Russian treadmill speech triggered log_set and the session remained listening. Reports are in ignored desktop/test-output/voice-continuity-live-report.json and voice-smoke-report.json.
+
+NSIS 1.3.1 installation exited 0. Installed EXE reported packaged=true/version=1.3.1. Actual Deepgram audio, section navigation without microphone shutdown, same-process reconnect and key persistence across full restart passed. Training deep-equaled the pre-upgrade snapshot except timestamp. voice-installed-report.json records the results; an actual Windows screenshot was captured and inspected. Microphone was stopped after verification.
+
+Rollback: run the retained outputs/openGym-Setup-1.3.0-x64.exe /S; pre-upgrade training snapshot is desktop/test-output/before-voice-continuity-fix.json. No schema migration was introduced. Human speech in treadmill noise and the exact original interruption remain unverified.
+
+Additional live regression: synthesized Russian «Я сделал жим гантелей стоя вверх на плечи. Гантели по десять килограммов, десять повторов. Пиши это.» produced context/search/log_set and remained listening. Reconnect returned continuation audio. Evidence: ignored voice-shoulder-live-report.json; isolated test profile only.
