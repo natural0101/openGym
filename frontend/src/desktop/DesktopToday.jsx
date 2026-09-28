@@ -32,7 +32,7 @@ function ExerciseCard({ entry, state, onEdit, editable }) {
   }
   const countLabel = n => n % 10 === 1 && n % 100 !== 11 ? 'подход' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'подхода' : 'подходов'
   return <article className="today-exercise"><details>
-    <summary className="today-exercise-summary"><div><h3>{name}</h3><p>{groups.length === 1 ? `${groups[0].value} · ${rows.length} ${countLabel(rows.length)}` : `${rows.length} ${countLabel(rows.length)} · разные значения`}</p></div><span className="today-expand"><span className="when-closed">Подробнее</span><span className="when-open">Свернуть</span><span aria-hidden="true">⌄</span></span></summary>
+    <summary className="today-exercise-summary"><div><h3>{name}</h3><p>{groups.length === 1 ? `${groups[0].value} · ${rows.length} ${countLabel(rows.length)}` : `${rows.length} ${countLabel(rows.length)} · разные значения`}</p></div><span className="today-expand" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span></summary>
     <div className="today-exercise-detail">
       {groups.length > 1 && <div className="today-groups">{groups.map((g, i) => <span key={i}>{g.count} × {g.value}</span>)}</div>}
       <div className="today-set-heading"><span>Подход</span><span>Вес / время</span><span>Повторы / скорость</span></div>

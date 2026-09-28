@@ -96,3 +96,7 @@
 :root[data-desktop="true"][data-menu-open="true"] #app{margin-left:216px}
 :root[data-desktop="true"][data-menu-open="false"] .desk-topbar{left:60px}
 :root[data-desktop="true"][data-menu-open="true"] .desk-topbar{left:216px}
+
+.today-exercise-summary .today-expand{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex:0 0 32px;margin:0;padding:0}
+.today-expand svg{display:block}
+.today-exercise details[open] .today-expand svg{transform:rotate(180deg)}
