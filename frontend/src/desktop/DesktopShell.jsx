@@ -14,6 +14,8 @@ export default function DesktopShell() {
   const nav = useNavigate(), loc = useLocation()
   const S = useStore(s => s.S), save = useStore(s => s.desktopSave)
   const voiceStatus = useVoice(s => s.status)
+  const [menuOpen, setMenuOpen] = useState(() => localStorage.getItem('gym-menu-open') === 'true')
+  useEffect(() => { document.documentElement.dataset.menuOpen = String(menuOpen); localStorage.setItem('gym-menu-open', String(menuOpen)) }, [menuOpen])
   useEffect(bindVoice, [])
   const [searching, setSearching] = useState(false), [query, setQuery] = useState('')
   const searchRef = useRef(null), commandRef = useRef(null)
@@ -36,6 +38,7 @@ export default function DesktopShell() {
     <MotivationReminderBanner />
     <a className="desk-skip" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('app')?.focus() }}>Перейти к содержимому</a>
     <aside className="desk-sidebar">
+      <button className="desk-menu-toggle" title={menuOpen ? 'Свернуть меню' : 'Развернуть меню'} aria-label={menuOpen ? 'Свернуть меню' : 'Развернуть меню'} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
       <button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — сегодня"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><span>openGym</span></button>
       <button className="desk-search" aria-label="Найти раздел" title="Найти раздел · Ctrl K" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
       <div className="desk-nav-label">Твой зал</div>

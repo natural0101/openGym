@@ -73,3 +73,26 @@
 :root[data-desktop="true"] .desk-nav-item .icn{display:inline-flex;font-size:20px}
 :root[data-desktop="true"] .desk-live{position:absolute;right:5px;top:5px;width:4px;height:4px}
 :root[data-desktop="true"] #app{margin-left:60px;margin-right:0}
+:root[data-desktop="true"] .desk-menu-toggle{display:flex;align-items:center;justify-content:center;width:40px;height:36px;margin:0 auto 12px;border:0;border-radius:8px;background:transparent;color:var(--label);cursor:pointer}
+:root[data-desktop="true"] .desk-menu-toggle:hover{background:var(--surface-3)}
+:root[data-desktop="true"][data-menu-open="true"]{--desk-width:216px}
+:root[data-desktop="true"][data-menu-open="true"] .desk-sidebar{width:216px;padding-left:12px;padding-right:12px}
+:root[data-menu-open="true"] .desk-menu-toggle{margin-left:0}
+:root[data-desktop="true"][data-menu-open="true"] .desk-nav-item,:root[data-desktop="true"][data-menu-open="true"] .desk-search{width:100%;justify-content:flex-start;padding:0 12px;gap:12px}
+:root[data-desktop="true"][data-menu-open="true"] .desk-nav-item>span,:root[data-desktop="true"][data-menu-open="true"] .desk-search span,:root[data-desktop="true"][data-menu-open="true"] .desk-brand>span:last-child{display:inline}
+:root[data-desktop="true"][data-menu-open="true"] .desk-brand{justify-content:flex-start;gap:12px}
+:root[data-desktop="true"] #app{margin-left:var(--desk-width)}
+:root[data-desktop="true"] .desk-topbar{left:var(--desk-width)}
+.today-layout{display:block}
+.today-toolbar{display:flex;align-items:flex-start;gap:18px}
+.today-toolbar .today-voice{flex:1;min-width:0;padding-top:15px!important}
+.today-rest-square{position:relative;flex:0 0 70px;order:2}
+.today-rest-square>summary{box-sizing:border-box;width:70px;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:10px;background:var(--surface-2);cursor:pointer;list-style:none}
+.today-rest-square>summary::-webkit-details-marker{display:none}
+.today-rest-square>summary>span{font-size:11px;color:var(--label-2)}
+.today-rest-square strong{font-size:20px;font-variant-numeric:tabular-nums}
+.today-rest-popup{position:absolute;right:0;top:78px;z-index:8;display:flex;gap:6px;padding:10px;background:var(--surface);box-shadow:0 3px 18px #0002;border-radius:10px}
+:root[data-desktop="true"][data-menu-open="false"] #app{margin-left:60px}
+:root[data-desktop="true"][data-menu-open="true"] #app{margin-left:216px}
+:root[data-desktop="true"][data-menu-open="false"] .desk-topbar{left:60px}
+:root[data-desktop="true"][data-menu-open="true"] .desk-topbar{left:216px}
