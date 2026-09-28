@@ -64,7 +64,7 @@ export default function DesktopToday() {
     finally { setFinishing(false) }
   }
   return <div className="workspace-home today-page">
-    <div className="workspace-heading"><div><h1>{isToday ? 'Сегодня' : 'Моя тренировка'}</h1></div><button className="btn" onClick={() => nav('/history')}>История</button></div>
+    <div className="workspace-heading"><div><h1>{isToday ? 'Сегодня' : 'Моя тренировка'}</h1></div></div>
     <div className="today-date"><button className="btn" aria-label="Предыдущий день" onClick={() => move(-1)}>←</button><label><span>{new Date(day + 'T12:00:00').toLocaleDateString('ru-RU', { weekday: 'long' })}</span><input aria-label="Дата тренировки" type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value) }} /></label><button className="btn" aria-label="Следующий день" onClick={() => move(1)}>→</button>{!isToday && <button className="btn" onClick={() => setDay(today)}>К сегодняшнему дню</button>}</div>
     {isToday && <details className="today-progress"><summary>Прогресс</summary><MotivationPanel /></details>}
     <div className="today-layout"><div className="today-main">
