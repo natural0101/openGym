@@ -52,3 +52,7 @@
 .voice-connection summary { cursor: pointer; color: var(--muted); }
 .voice-connection form { margin: 12px 0; max-width: 420px; }
 .voice-connection small { display: block; max-width: 440px; line-height: 1.5; }
+
+:root[data-desktop="true"] .today-rest-idle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;min-height:0}
+.today-rest-idle .today-rest-label{font-size:13px;font-weight:500}
+.today-rest-idle .today-settings-link{margin:0;white-space:nowrap;font-size:12px}
