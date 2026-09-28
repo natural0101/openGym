@@ -56,3 +56,6 @@
 :root[data-desktop="true"] .today-rest-idle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;min-height:0}
 .today-rest-idle .today-rest-label{font-size:13px;font-weight:500}
 .today-rest-idle .today-settings-link{margin:0;white-space:nowrap;font-size:12px}
+:root[data-desktop="true"] .today-voice,:root[data-desktop="true"][data-theme="dark"] .today-voice{padding:0;background:transparent;border-radius:0}
+.today-voice .today-voice-actions{margin-top:0;gap:12px}
+.today-side{align-items:start}
