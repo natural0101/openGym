@@ -144,7 +144,7 @@ test('no-key error stays visible after the backend acknowledges cleanup with off
   h.mod.useVoice.setState({ status: 'off', sessionId: null })
   await h.mod.startVoice()
   assert.equal(h.mod.useVoice.getState().status, 'error')
-  assert.equal(h.mod.useVoice.getState().error, 'Сначала добавь ключ Deepgram ниже.')
+  assert.equal(h.mod.useVoice.getState().error, 'Для первого разговора подключи Deepgram.')
   assert.equal(h.mod.useVoice.getState().busy, false)
 })
 test('an older cleanup error cannot overwrite a new local start', async () => {

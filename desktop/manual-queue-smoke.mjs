@@ -10,7 +10,7 @@ const disk=async()=>JSON.parse(await readFile(path.join(profile,'training.json')
 try {
  await page.getByRole('heading',{name:'Сегодня',exact:true}).waitFor()
  await page.context().setOffline(true)
- await page.getByRole('button',{name:'Внести / исправить вручную',exact:true}).click()
+ await page.getByRole('button',{name:'Добавить',exact:true}).click()
  await page.getByRole('button',{name:'Свободная тренировка (выбирай по ходу)',exact:true}).click()
  await page.getByRole('button',{name:'Добавить упражнение',exact:true}).waitFor()
  assert((await disk()).active);checks.push('Manual freestyle start persists before workout UI')

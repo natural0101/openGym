@@ -1,4 +1,5 @@
-> **Windows desktop edition (natural0101 fork).** Native installer, offline local storage, desktop navigation, backups and home plans for dumbbells + treadmill. See [Windows installation and build instructions](docs/WINDOWS.md). The original self-hosted version is documented below.
+> **openGym для Windows — бета-кандидат этого форка.** Локальный дневник, голосовая запись с собственным ключом Deepgram и виджет рабочего стола. [Установка, ограничения и сборка](docs/WINDOWS.md). Публичный Windows-релиз пока не опубликован. Ниже сохранена документация исходного веб-проекта.
+
 
 <div align="center">
 

@@ -72,7 +72,10 @@ app background). Generate all platform assets from it on a machine with the tool
 
 ```sh
 cd frontend
-npx @capacitor/assets generate --iconBackgroundColor '#0c0e12' --splashBackgroundColor '#0c0e12'
+# This Windows fork retains the checked-in mobile assets.
+# The legacy @capacitor/assets generator was removed from dependencies
+# because its transitive image/archive tools have unresolved advisories.
+# Mobile asset regeneration needs a separately reviewed toolchain.
 ```
 
 (If the generator won't take the SVG directly, export it to `resources/icon.png` at

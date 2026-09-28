@@ -81,7 +81,7 @@ try{
  assert((await command('after-failure',{action:'rest',seconds:60})).saved)
  assert.equal((await disk()).active,null,'Failed set must not reappear on a later successful write')
  checks.push('Disk failure: saved=false; failed draft cannot leak into a later successful command.')
- await widget.getByRole('button',{name:'Слушаю · выключить'}).click();await page.getByText('Микрофон выключен',{exact:true}).waitFor()
+ await widget.getByRole('button',{name:'Слушаю · выключить'}).click();await page.waitForFunction(async()=> (await window.openGymDesktop.voiceInfo()).status==='off');await page.getByRole('button',{name:'Начать разговор',exact:true}).waitFor()
  const bytesAfterStop=inputBytes;await page.waitForTimeout(300);assert.equal(inputBytes,bytesAfterStop)
  assert.equal(errors.length,0,errors.join('\n'))
  const report={checks,inputBytes,rendererErrors:errors,profile,passed:true};await writeFile(path.join(output,'voice-smoke-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2))

@@ -5,7 +5,7 @@ async function createWindowState(dataDir, screen) {
   const file = path.join(dataDir, 'window-state.json')
   let saved
   try { saved = JSON.parse(await fs.readFile(file, 'utf8')) } catch {}
-  const valid = saved && ['x', 'y', 'width', 'height'].every(k => Number.isFinite(saved[k])) && saved.width >= 400 && saved.height >= 300
+  const valid = saved && ['x', 'y', 'width', 'height'].every(k => Number.isInteger(saved[k]) && Math.abs(saved[k]) <= 100000) && saved.width >= 400 && saved.height >= 300
   const area = (valid ? screen.getDisplayMatching(saved) : screen.getPrimaryDisplay()).workArea
   const width = Math.min(area.width, valid ? Math.max(800, saved.width) : 1100)
   const height = Math.min(area.height, valid ? Math.max(600, saved.height) : 760)

@@ -1,3 +1,5 @@
+import { archivePreviousWorkout } from './previous-workout.js'
+import { confirmSheet } from '../sheets.jsx'
 import VoiceConnection from './VoiceConnection.jsx'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -75,6 +77,7 @@ export default function DesktopToday() {
       {voice.error && voice.status === 'error' && <p role="alert" className="today-error">{voice.error}</p>}
         {!!messages.length && <div className="today-transcript" aria-live="polite">{messages.map(m => <p key={m.id}><b>{m.role === 'user' ? 'Ты' : m.role === 'saved' ? 'Дневник' : 'Напарник'}:</b> {m.text}</p>)}</div>}
       </section></div>
+      {S.active && S.active.d < today && !S.active.backfill && <button className="btn sm" style={{marginTop:12}} onClick={() => confirmSheet({title:'Сохранить прошлую тренировку?',message:'Подходы останутся за '+S.active.d+'. После сохранения можно записывать сегодняшнюю тренировку.',confirmText:'Сохранить',onConfirm:async()=>{try{await useStore.getState().update(draft=>archivePreviousWorkout(draft,today));useUI.getState().stopRest()}catch(error){useUI.getState().toast(error.message)}}})}>Сохранить тренировку за {S.active.d}</button>}
       <section className="today-log" aria-label="Записанные подходы"><div className="today-section-heading"><h2>Упражнения</h2><button className="btn sm" onClick={() => nav(isToday ? '/workout' : '/history')}>{isToday ? 'Добавить' : 'Изменить'}</button></div>
         {!completed.length && <div className="today-empty"><span>01</span><h3>Пока ни одного подхода</h3><p>{isToday ? 'Включи микрофон и назови упражнение, вес и повторы. Заранее создавать программу не нужно.' : 'За выбранный день выполненных подходов нет.'}</p>{isToday && <button className="btn" onClick={() => nav('/library')}>Посмотреть упражнения</button>}</div>}
         {sessions.map(w => <div className="today-session" key={w.id}>{w.entries.map((e, i) => { if (!e.sets.some(s => s.done)) return null; return <ExerciseCard key={`${e.id}-${i}`} entry={e} state={S} editable={w === S.active} onEdit={async () => { if (w === S.active) { try { await useStore.getState().update(s => { if (s.active?.id === w.id) s.active.cur = i }); nav('/workout') } catch { useUI.getState().toast('Не удалось открыть упражнение. Попробуй ещё раз.') } } else nav('/history') }} /> })}</div>)}

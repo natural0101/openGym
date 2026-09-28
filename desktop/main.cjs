@@ -57,7 +57,7 @@ if (!single) { app.quit() } else {
     session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => callback(!!voicePermission(wc, permission, details)))
     session.defaultSession.setPermissionCheckHandler((wc, permission, _origin, details) => !!voicePermission(wc, permission, details))
     const handle = (name, fn) => ipcMain.handle(name, async (event, ...args) => {
-      if (!event.senderFrame || !event.senderFrame.url.startsWith('opengym://app/')) throw new Error('Untrusted frame')
+      if (event.sender !== win?.webContents || event.senderFrame !== win?.webContents.mainFrame || !event.senderFrame?.url.startsWith('opengym://app/')) throw new Error('Untrusted frame')
       return fn(...args)
     })
     handle('desktop:load', () => storage.read())

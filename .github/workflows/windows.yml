@@ -1,0 +1,46 @@
+name: Windows desktop
+on:
+  pull_request:
+    paths: ['desktop/**', 'frontend/**', 'package*.json', '.github/workflows/windows.yml']
+  push:
+    branches: [main]
+    paths: ['desktop/**', 'frontend/**', 'package*.json', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+      - run: npm --prefix frontend ci
+      - run: npm run test:desktop
+      - run: npm --prefix frontend test
+      - run: npm run build
+      - run: npm run test:smoke
+      - run: node desktop/voice-smoke.mjs
+      - run: node desktop/manual-queue-smoke.mjs
+      - run: node desktop/queued-close-smoke.mjs
+      - run: node desktop/today-smoke.mjs
+      - run: node desktop/motivation-smoke.mjs
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openGym-windows-installer
+          path: release/openGym-Setup-*-x64.exe
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-check-results
+          path: desktop/test-output/*report.json
+          if-no-files-found: ignore

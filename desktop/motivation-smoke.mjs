@@ -7,7 +7,7 @@ const app=await electron.launch({args:['.'],env:{...process.env,OPENGYM_TEST_DAT
 try{
  const page=await app.firstWindow(),errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.getByRole('heading',{name:'Сегодня',exact:true}).waitFor()
- await page.getByText('Твой рост и подробности',{exact:true}).click();assert((await page.getByRole('region',{name:'Мой прогресс'}).innerText()).includes('Первые записи'))
+ await page.getByText('Прогресс',{exact:true}).click();await page.getByText('Твой рост и подробности',{exact:true}).click();assert((await page.getByRole('region',{name:'Мой прогресс'}).innerText()).includes('Первые записи'))
  const settings=await page.evaluate(()=>window.openGymDesktop.motivationInfo());assert.equal(settings.reminder.enabled,false)
  await page.evaluate(async()=>{
    const s=(await window.openGymDesktop.load()).state
@@ -18,7 +18,7 @@ try{
    s.active={id:'current',d:day(today),name:'Current',start:Date.now(),entries:[entry(12)],routineIds:[]}
    await window.openGymDesktop.save(s)
  });await page.reload();await page.getByRole('heading',{name:'Сегодня',exact:true}).waitFor()
- await page.getByText('Твой рост и подробности',{exact:true}).click();await page.getByText('+2 повт. при 10 кг · было 10, сейчас 12',{exact:true}).waitFor()
+ await page.getByText('Прогресс',{exact:true}).click();await page.getByText('Твой рост и подробности',{exact:true}).click();await page.getByText('+2 повт. при 10 кг · было 10, сейчас 12',{exact:true}).waitFor()
  const before=(await page.evaluate(()=>window.openGymDesktop.load())).state
  await page.getByRole('button',{name:'Настройки',exact:true}).click()
  await page.getByLabel('Цель тренировочных дней на неделю').selectOption('2')
@@ -31,7 +31,7 @@ try{
  assert.deepEqual(after.active,before.active);assert.deepEqual(after.workouts,before.workouts)
  await page.getByRole('button',{name:'Сегодня',exact:true}).click()
  await page.getByRole('button',{name:'Завершить тренировку',exact:true}).click()
- await page.getByText('Хорошая работа. Тренировка сохранена.',{exact:true}).waitFor()
+ await page.waitForFunction(async()=>!(await window.openGymDesktop.load()).state.active);await page.getByText('Прогресс',{exact:true}).click();await page.getByText('Хорошая работа. Тренировка сохранена.',{exact:true}).waitFor()
  assert.equal((await page.evaluate(()=>window.openGymDesktop.load())).state.active,null)
  assert.deepEqual(errors,[])
  const report={passed:true,profile,checks:['First record baseline','Exact +2 rep comparison','Weekly goal/settings persistence','Settings preserve training','Post-finish praise'],errors}

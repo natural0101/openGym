@@ -15,18 +15,18 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-function mountTopSheet() {
+async function mountTopSheet() {
   const sheet = useUI.getState().sheets.at(-1)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   mounted.push(root)
-  act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
+  await act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
 const button = (host, text) => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === text)
 
-describe('workout view is snapshot onto the active session', () => {
+describe('workout view is snapshot onto the active session', async () => {
   beforeEach(() => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     useUI.setState({ sheets: [], toasts: [] })
@@ -35,31 +35,31 @@ describe('workout view is snapshot onto the active session', () => {
   })
   afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
 
-  it('beginWorkout copies the current default onto s.active', () => {
+  it('beginWorkout copies the current default onto s.active', async () => {
     useStore.setState(s => ({ S: { ...s.S, workoutView: 'compact' } }))
-    act(() => beginWorkout(null, null))
+    await act(() => beginWorkout(null, null))
     expect(useStore.getState().S.active.workoutView).toBe('compact')
   })
 
-  it('beginWorkout falls back to cards when the default is unset', () => {
+  it('beginWorkout falls back to cards when the default is unset', async () => {
     useStore.setState(s => { const S = { ...s.S }; delete S.workoutView; return { S } })
-    act(() => beginWorkout(null, null))
+    await act(() => beginWorkout(null, null))
     expect(useStore.getState().S.active.workoutView).toBe('cards')
   })
 
-  it('later changes to the default leave the running session alone', () => {
-    act(() => beginWorkout(null, null))
+  it('later changes to the default leave the running session alone', async () => {
+    await act(() => beginWorkout(null, null))
     expect(useStore.getState().S.active.workoutView).toBe('cards')
     useStore.setState(s => ({ S: { ...s.S, workoutView: 'list' } }))
     expect(useStore.getState().S.active.workoutView).toBe('cards')
   })
 
-  it('a backfilled session snapshots it too', () => {
+  it('a backfilled session snapshots it too', async () => {
     useStore.setState(s => ({ S: { ...s.S, workoutView: 'list' } }))
     logPastWorkoutSheet()
-    const host = mountTopSheet()
-    act(() => { type(host.querySelector('input[type=date]'), '2020-01-02') })
-    act(() => { button(host, 'Continue').click() })
+    const host = await mountTopSheet()
+    await act(() => { type(host.querySelector('input[type=date]'), '2020-01-02') })
+    await act(() => { button(host, 'Continue').click() })
     expect(useStore.getState().S.active.workoutView).toBe('list')
   })
 })
