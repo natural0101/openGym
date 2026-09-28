@@ -111,7 +111,7 @@ if (!single) { app.quit() } else {
     const windowState = await createWindowState(dataDir, screen)
     win = new BrowserWindow({
       ...windowState.bounds, minWidth: Math.min(800, windowState.bounds.width), minHeight: Math.min(600, windowState.bounds.height), title: 'openGym', backgroundColor: '#fafafa',
-      icon: path.join(dist, 'desktop-icon.ico'), show: false,
+      icon: path.join(dist, 'desktop-icon-512.png'), show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
     })
     const openWorkout = () => { if (!win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); win.webContents.send('desktop:widget-action', 'open') } }
