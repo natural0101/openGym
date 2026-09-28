@@ -100,3 +100,9 @@
 .today-exercise-summary .today-expand{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex:0 0 32px;margin:0;padding:0}
 .today-expand svg{display:block}
 .today-exercise details[open] .today-expand svg{transform:rotate(180deg)}
+
+:root[data-desktop="true"] .desk-sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:20px}
+:root[data-desktop="true"] .desk-sidebar-heading .desk-brand{padding:0;min-width:0}
+:root[data-desktop="true"] .desk-sidebar-heading .desk-menu-toggle{margin:0;flex:0 0 32px;width:32px;height:36px}
+:root[data-desktop="true"][data-menu-open="false"] .desk-sidebar-heading{justify-content:center}
+:root[data-desktop="true"][data-menu-open="false"] .desk-sidebar-heading .desk-brand{display:none}
