@@ -1,3 +1,4 @@
+import VoiceConnection from './VoiceConnection.jsx'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -68,10 +69,11 @@ export default function DesktopToday() {
     <div className="today-date"><button className="btn" aria-label="Предыдущий день" onClick={() => move(-1)}>←</button><label><span>{new Date(day + 'T12:00:00').toLocaleDateString('ru-RU', { weekday: 'long' })}</span><input aria-label="Дата тренировки" type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value) }} /></label><button className="btn" aria-label="Следующий день" onClick={() => move(1)}>→</button>{!isToday && <button className="btn" onClick={() => setDay(today)}>К сегодняшнему дню</button>}<span className="today-count">Записано подходов: {completed.length}</span></div>
     {isToday && <MotivationPanel />}
     <div className="today-layout"><div className="today-main">
-      <section className="today-voice" aria-label="Запись голосом"><div><h2>Скажи, что сделал</h2><p>«Жим гантелей, 10 килограммов, 12 повторов». Подход появится ниже.</p></div><div className="today-voice-actions">{voice.hasKey ? <button className={'btn ' + (listening ? '' : 'primary')} disabled={voice.busy} onClick={() => { if (!listening) setDay(today); void (listening ? stopVoice() : startVoice()) }}>{listening ? 'Выключить микрофон' : 'Начать разговор'}</button> : <button className="btn primary" onClick={() => nav('/voice')}>Настроить голос</button>}<span role="status">{VOICE_LABELS[voice.status]}</span></div>
+      <section className="today-voice" aria-label="Запись голосом"><div><h2>Скажи, что сделал</h2><p>«Жим гантелей, 10 килограммов, 12 повторов». Подход появится ниже.</p></div><div className="today-voice-actions">{<button className={'btn ' + (listening ? '' : 'primary')} disabled={voice.busy} onClick={() => { if (!listening) setDay(today); void (listening ? stopVoice() : startVoice()) }}>{listening ? 'Выключить микрофон' : 'Начать разговор'}</button>}<span role="status">{VOICE_LABELS[voice.status]}</span></div>
         {!isToday && <p className="today-note">Голос записывает в текущую тренировку за сегодня. Эта дата — просмотр истории.</p>}
         {S.active && S.active.d !== today && <p className="today-note">Открыта незавершённая тренировка за {S.active.d}. Заверши её на экране редактирования, чтобы записывать сегодняшние подходы.</p>}
-        {voice.error && voice.status === 'error' && <p role="alert" className="today-error">{voice.error}</p>}
+        {voice.hasKey === false && voice.status === 'error' && <VoiceConnection />}
+      {voice.error && voice.status === 'error' && <p role="alert" className="today-error">{voice.error}</p>}
         {!!messages.length && <div className="today-transcript" aria-live="polite">{messages.map(m => <p key={m.id}><b>{m.role === 'user' ? 'Ты' : m.role === 'saved' ? 'Дневник' : 'Напарник'}:</b> {m.text}</p>)}</div>}
       </section>
       <section className="today-log" aria-label="Записанные подходы"><div className="today-section-heading"><h2>{isToday ? 'Что сделал сегодня' : 'Записи за день'}</h2><button className="btn sm" onClick={() => nav(isToday ? '/workout' : '/history')}>{isToday ? 'Внести / исправить вручную' : 'Редактировать в истории'}</button></div>

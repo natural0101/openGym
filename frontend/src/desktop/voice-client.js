@@ -5,7 +5,7 @@ import { useUI } from '../store/useUI.js'
 import { applyVoiceAction, readVoiceAction } from './voice-actions.js'
 
 export const VOICE_LABELS = { off: 'Микрофон выключен', connecting: 'Подключаюсь…', listening: 'Слушаю тебя', thinking: 'Обдумываю ответ', speaking: 'Напарник отвечает', error: 'Разговор прерван' }
-export const useVoice = create(() => ({ status: 'off', error: '', hasKey: false, messages: [], sessionId: null, busy: false }))
+export const useVoice = create(() => ({ status: 'off', error: '', hasKey: null, messages: [], sessionId: null, busy: false }))
 let context, stream, source, capture, gain, nextAudio = 0, generation = 0, queue = Promise.resolve(), bound = false
 const playing = new Set(), cancelled = new Set()
 const message = (role, text) => useVoice.setState(s => ({ messages: [...s.messages, { role, text, id: crypto.randomUUID() }].slice(-80) }))
@@ -36,7 +36,7 @@ export async function startVoice() {
   const token = ++generation
   let startedSessionId
   try {
-    if (!(await refreshVoice()).hasKey) throw Error('Сначала добавь ключ Deepgram ниже.')
+    if (!(await refreshVoice()).hasKey) throw Error('Для первого разговора подключи Deepgram.')
     if (token !== generation) return
     context = new AudioContext({ sampleRate: 24000 }); await context.resume()
     if (token !== generation) return

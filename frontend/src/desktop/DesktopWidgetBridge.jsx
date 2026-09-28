@@ -37,7 +37,7 @@ export default function DesktopWidgetBridge() {
     if (action === 'voice') {
       const v = useVoice.getState()
       if (!['off', 'error'].includes(v.status)) { void stopVoice(); return }
-      if (!v.hasKey) { nav('/voice'); return }
+      nav('/home')
       void startVoice()
     }
     if (action === 'open') nav(useStore.getState().S.active ? '/workout' : '/home')

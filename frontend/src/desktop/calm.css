@@ -47,3 +47,8 @@
 :root[data-desktop="true"][data-theme="dark"] :is(.today-voice,.today-rest,.motivation-panel,.today-exercise) :is(p,small,summary,span){color:var(--label-2)}
 @media(max-width:980px){:root[data-desktop="true"] #app{padding:20px 24px 32px}}
 @media(prefers-reduced-motion:reduce){:root[data-desktop="true"] .btn{transition:none}}
+
+.voice-connection { margin: 14px 0; font-size: 13px; }
+.voice-connection summary { cursor: pointer; color: var(--muted); }
+.voice-connection form { margin: 12px 0; max-width: 420px; }
+.voice-connection small { display: block; max-width: 440px; line-height: 1.5; }
