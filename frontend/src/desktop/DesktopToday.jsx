@@ -8,7 +8,6 @@ import { exOr } from '../lib/exercises.js'
 import { exerciseLabel } from './exercise-labels.js'
 import { useVoice, startVoice, stopVoice, VOICE_LABELS } from './voice-client.js'
 import { applyVoiceAction } from './voice-actions.js'
-import TrainingBuddy from './TrainingBuddy.jsx'
 import MotivationPanel from './MotivationPanel.jsx'
 import './DesktopToday.css'
 
@@ -80,6 +79,6 @@ export default function DesktopToday() {
         {sessions.map(w => <div className="today-session" key={w.id}>{w.entries.map((e, i) => { if (!e.sets.some(s => s.done)) return null; return <ExerciseCard key={`${e.id}-${i}`} entry={e} state={S} editable={w === S.active} onEdit={async () => { if (w === S.active) { try { await useStore.getState().update(s => { if (s.active?.id === w.id) s.active.cur = i }); nav('/workout') } catch { useUI.getState().toast('Не удалось открыть упражнение. Попробуй ещё раз.') } } else nav('/history') }} /> })}</div>)}
       </section>
       {isToday && S.active?.d === today && <div className="today-finish"><button className="btn primary" disabled={!canFinish || finishing} onClick={() => { void finish() }}>{finishing ? 'Сохраняю…' : 'Завершить тренировку'}</button></div>}
-    </div><aside className="today-side"><section className={"today-rest" + (timer ? "" : " today-rest-idle")} aria-label="Отдых">{timer ? <><span className="neo-kicker">Следующий подход</span><h2>Восстанавливайся</h2><strong className="today-clock" role="timer">{time(timer.left)}</strong></> : <span className="today-rest-label">Отдых после подхода</span>}{timer && <div className="today-rest-actions"><button className="btn" onClick={() => useUI.getState().addRest(30)}>Ещё 30 сек</button><button className="btn" onClick={() => useUI.getState().stopRest()}>Я готов</button></div>}<button className="today-settings-link" onClick={() => nav('/settings')}>{timer ? "Настройки отдыха →" : "Настроить →"}</button></section><TrainingBuddy compact /></aside></div>
+    </div><aside className="today-side"><section className={"today-rest" + (timer ? "" : " today-rest-idle")} aria-label="Отдых">{timer ? <><span className="neo-kicker">Следующий подход</span><h2>Восстанавливайся</h2><strong className="today-clock" role="timer">{time(timer.left)}</strong></> : <span className="today-rest-label">Отдых после подхода</span>}{timer && <div className="today-rest-actions"><button className="btn" onClick={() => useUI.getState().addRest(30)}>Ещё 30 сек</button><button className="btn" onClick={() => useUI.getState().stopRest()}>Я готов</button></div>}<button className="today-settings-link" onClick={() => nav('/settings')}>{timer ? "Настройки отдыха →" : "Настроить →"}</button></section></aside></div>
   </div>
 }

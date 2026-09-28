@@ -63,3 +63,13 @@
 .today-progress{margin:0 0 18px;font-size:13px;color:var(--label-2)}
 .today-progress>summary{cursor:pointer;width:fit-content}
 .today-progress[open]>.motivation-panel{margin-top:12px}
+:root[data-desktop="true"]{--desk-width:60px}
+:root[data-desktop="true"] .desk-sidebar{width:60px;padding:16px 8px 12px}
+:root[data-desktop="true"] .desk-brand{justify-content:center;padding:0 0 20px;gap:0}
+:root[data-desktop="true"] .desk-brand>span:last-child,:root[data-desktop="true"] .desk-search span,:root[data-desktop="true"] .desk-search kbd,:root[data-desktop="true"] .desk-nav-label,:root[data-desktop="true"] .desk-nav-item>span,:root[data-desktop="true"] .desk-profile{display:none}
+:root[data-desktop="true"] .desk-search{display:flex;justify-content:center;align-items:center;width:40px;height:40px;padding:0;margin:0 auto 16px;background:transparent}
+:root[data-desktop="true"] .desk-nav-item{position:relative;display:flex;align-items:center;justify-content:center;width:40px;min-height:40px;padding:0;margin:0 auto 8px;gap:0}
+:root[data-desktop="true"] .desk-nav-item.selected{background:var(--surface-3);color:var(--label)}
+:root[data-desktop="true"] .desk-nav-item .icn{display:inline-flex;font-size:20px}
+:root[data-desktop="true"] .desk-live{position:absolute;right:5px;top:5px;width:4px;height:4px}
+:root[data-desktop="true"] #app{margin-left:60px;margin-right:0}

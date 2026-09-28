@@ -37,7 +37,7 @@ export default function DesktopShell() {
     <a className="desk-skip" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('app')?.focus() }}>Перейти к содержимому</a>
     <aside className="desk-sidebar">
       <button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — сегодня"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><span>openGym</span></button>
-      <button className="desk-search" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
+      <button className="desk-search" aria-label="Найти раздел" title="Найти раздел · Ctrl K" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
       <div className="desk-nav-label">Твой зал</div>
       <nav aria-label="Основная навигация">{links.map(([path, icon, label]) => <button key={path} aria-label={label} title={label} className={'desk-nav-item' + (loc.pathname.startsWith(path) ? ' selected' : '')} aria-current={loc.pathname.startsWith(path) ? 'page' : undefined} onClick={() => nav(path)}><Icon name={icon} /><span>{label}</span>{path === '/home' && S.active && <i className="desk-live" />}</button>)}</nav>
 
