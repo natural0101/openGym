@@ -7,6 +7,7 @@ const { createMedia } = require('./media.cjs')
 const { createWidget } = require('./widget.cjs')
 const { createVoice } = require('./voice.cjs')
 const { createRendererFlush } = require('./renderer-flush.cjs')
+const { createWindowState } = require('./window-state.cjs')
 const { createReminder, dayOf } = require('./reminder.cjs')
 
 // Test runs use their own directory and never touch a person's training history.
@@ -107,8 +108,9 @@ if (!single) { app.quit() } else {
     handle('desktop:media-start', () => { void media.start(); return media.status() })
     handle('desktop:media-stop', () => media.stop())
     Menu.setApplicationMenu(null)
+    const windowState = await createWindowState(dataDir, screen)
     win = new BrowserWindow({
-      width: 1380, height: 920, minWidth: 800, minHeight: 600, title: 'openGym', backgroundColor: '#fafafa',
+      ...windowState.bounds, minWidth: Math.min(800, windowState.bounds.width), minHeight: Math.min(600, windowState.bounds.height), title: 'openGym', backgroundColor: '#fafafa',
       icon: path.join(dist, 'desktop-icon-512.png'), show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
     })
@@ -157,14 +159,15 @@ if (!single) { app.quit() } else {
     })
     win.webContents.on('will-navigate', (event, url) => { if (!url.startsWith('opengym://app/')) event.preventDefault() })
     win.webContents.on('will-attach-webview', event => event.preventDefault())
-    win.once('ready-to-show', () => { if (!widgetOnly) win.show() })
+    windowState.bind(win)
+    win.once('ready-to-show', () => { if (windowState.maximized) win.maximize(); if (!widgetOnly) win.show() })
     win.on('close', event => {
       if (closing) return
       event.preventDefault()
       if (closePending) return
       closePending = true
       // Drain the renderer transaction queue before inspecting the disk queue.
-      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush(), reminder.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
+      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush(), reminder.flush(), windowState.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
         if (response === 1) { closing = true; win.close() }
       }).finally(() => { closePending = false })
