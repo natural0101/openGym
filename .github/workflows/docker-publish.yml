@@ -23,6 +23,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'DuarteSantos8/openGym' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:

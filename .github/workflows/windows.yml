@@ -27,12 +27,14 @@ jobs:
       - run: npm --prefix frontend test
       - run: npm run build
       - run: npm run test:smoke
+      - run: node desktop/security-smoke.mjs
       - run: node desktop/voice-smoke.mjs
       - run: node desktop/manual-queue-smoke.mjs
       - run: node desktop/queued-close-smoke.mjs
       - run: node desktop/today-smoke.mjs
       - run: node desktop/motivation-smoke.mjs
       - run: npm run dist
+      - run: node desktop/installer-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: openGym-windows-installer
