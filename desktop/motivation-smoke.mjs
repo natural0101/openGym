@@ -18,7 +18,7 @@ try{
    s.active={id:'current',d:day(today),name:'Current',start:Date.now(),entries:[entry(12)],routineIds:[]}
    await window.openGymDesktop.save(s)
  });await page.reload();await page.getByRole('heading',{name:'Сегодня',exact:true}).waitFor()
- await page.getByText('Прогресс',{exact:true}).click();await page.getByText('Твой рост и подробности',{exact:true}).click();await page.getByText('+2 повт. при 10 кг · было 10, сейчас 12',{exact:true}).waitFor()
+ await page.getByText('Прогресс',{exact:true}).click();await page.getByText('Твой рост и подробности',{exact:true}).click();await page.getByText('+2 повт. при 10 кг: было 10, сейчас 12',{exact:true}).waitFor()
  const before=(await page.evaluate(()=>window.openGymDesktop.load())).state
  await page.getByRole('button',{name:'Настройки',exact:true}).click()
  await page.getByLabel('Цель тренировочных дней на неделю').selectOption('2')

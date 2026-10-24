@@ -10,7 +10,7 @@ export default function DesktopWorkout() {
   const view = useStore(s => s.S.workoutView)
   if (!active || view !== 'cards') return <Workout />
   return <div className="desk-workout-layout"><Workout /><div className="desk-workout-side"><aside className="desk-workout-outline" aria-label="Упражнения в тренировке">
-    <h2>В этой тренировке · {active.entries.length}</h2>
+    <h2>Упражнений в тренировке: {active.entries.length}</h2>
     {active.entries.map((entry, index) => {
       const done = entry.sets.filter(s => s.done).length
       return <button key={index} aria-current={active.cur === index ? 'step' : undefined} onClick={() => useStore.getState().update(s => { if (s.active) s.active.cur = index })}>

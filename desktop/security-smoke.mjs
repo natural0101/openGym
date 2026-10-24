@@ -19,7 +19,11 @@ try{
  });assert(checks.sandbox&&checks.contextIsolation&&!checks.nodeIntegration);assert(checks.denied.every(Boolean))
  const csp=await p.evaluate(()=>fetch('./index.html').then(r=>r.headers.get('content-security-policy')));assert(csp.includes("default-src 'self'")&&csp.includes("frame-src 'none'"))
  const traversal=await p.evaluate(()=>fetch('opengym://app/%2e%2e%5cpackage.json').then(r=>r.status));assert.equal(traversal,403)
+ const media=await p.evaluate(()=>window.openGymDesktop.mediaStatus());assert.equal(media.downloadsEnabled,false)
+ assert.match(await p.evaluate(async()=>{try{await window.openGymDesktop.downloadMedia();return 'Unexpected success'}catch(e){return e.message}}),/не скачивает/)
+ await app.evaluate(({shell})=>{globalThis.originalOpenPath=shell.openPath;shell.openPath=async()=> 'TEST folder unavailable'})
+ try{assert.match(await p.evaluate(async()=>{try{await window.openGymDesktop.openDataFolder();return 'Unexpected success'}catch(e){return e.message}}),/TEST folder unavailable/)}finally{await app.evaluate(({shell})=>{shell.openPath=globalThis.originalOpenPath})}
  const opening=app.waitForEvent('window');await p.evaluate(()=>window.openGymDesktop.showWidget());const widget=await opening;await widget.waitForURL('**/widget/index.html');assert.equal(await widget.evaluate(()=>typeof window.openGymDesktop),'undefined')
- const report={passed:true,ipcForgeryDenied:checks.denied.length,sandbox:true,nodeIntegration:false,contextIsolation:true,traversalStatus:traversal,widgetHasNoTrainingBridge:true}
+ const report={passed:true,ipcForgeryDenied:checks.denied.length,sandbox:true,nodeIntegration:false,contextIsolation:true,traversalStatus:traversal,widgetHasNoTrainingBridge:true,thirdPartyMediaDownloadRejected:true,folderFailureVisible:true}
  await writeFile('desktop/test-output/security-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report))
 }finally{await app.close()}

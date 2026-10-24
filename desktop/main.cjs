@@ -71,7 +71,10 @@ if (!single) { app.quit() } else {
       })
     })
     handle('desktop:info', () => ({ version: app.getVersion(), dataDir, backupDir: storage.backupDir, packaged: app.isPackaged }))
-    handle('desktop:folder', () => shell.openPath(dataDir))
+    handle('desktop:folder', async () => {
+      const error = await shell.openPath(dataDir)
+      if (error) throw new Error(error)
+    })
     handle('desktop:export', async () => {
       await flushRenderer()
       await storage.flush()
@@ -105,7 +108,7 @@ if (!single) { app.quit() } else {
       } finally { printWindow.destroy() }
     })
     handle('desktop:media-status', () => media.inspect())
-    handle('desktop:media-start', () => { void media.start(); return media.status() })
+    handle('desktop:media-start', () => media.start())
     handle('desktop:media-stop', () => media.stop())
     Menu.setApplicationMenu(null)
     const windowState = await createWindowState(dataDir, screen)
@@ -161,15 +164,16 @@ if (!single) { app.quit() } else {
     win.webContents.on('will-attach-webview', event => event.preventDefault())
     windowState.bind(win)
     win.once('ready-to-show', () => { if (windowState.maximized) win.maximize(); if (!widgetOnly) win.show() })
+    const finishClose = () => { closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }
     win.on('close', event => {
       if (closing) return
       event.preventDefault()
       if (closePending) return
       closePending = true
       // Drain the renderer transaction queue before inspecting the disk queue.
-      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush(), reminder.flush(), windowState.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; closing = true; voice.stop(); media.stop(); widgetController.dispose(); win.close() }).catch(async error => {
+      flushRenderer().then(() => Promise.all([storage.flush(), widgetController.flush(), reminder.flush(), windowState.flush()])).then(() => { if (!quitting && widgetController.isVisible()) { win.hide(); return }; finishClose() }).catch(async error => {
         const { response } = await dialog.showMessageBox(win, { type: 'warning', title: 'Данные не сохранены', message: error.message, buttons: ['Вернуться', 'Закрыть без сохранения'], defaultId: 0, cancelId: 0 })
-        if (response === 1) { closing = true; win.close() }
+        if (response === 1) finishClose()
       }).finally(() => { closePending = false })
     })
     await win.loadURL('opengym://app/index.html')

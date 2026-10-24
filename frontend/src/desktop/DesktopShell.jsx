@@ -40,7 +40,7 @@ export default function DesktopShell() {
     <aside className="desk-sidebar">
 
       <div className="desk-sidebar-heading"><button className="desk-brand" onClick={() => nav('/home')} aria-label="openGym — сегодня"><span className="desk-mark"><img src="./desktop-logo.svg" alt="" /></span><span>openGym</span></button><button className="desk-menu-toggle" title={menuOpen ? 'Свернуть меню' : 'Развернуть меню'} aria-label={menuOpen ? 'Свернуть меню' : 'Развернуть меню'} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button></div>
-      <button className="desk-search" aria-label="Найти раздел" title="Найти раздел · Ctrl K" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
+      <button className="desk-search" aria-label="Найти раздел" title="Найти раздел (Ctrl K)" onClick={() => setSearching(true)}><Icon name="magnifier" /><span>Найти раздел</span><kbd>Ctrl K</kbd></button>
       <div className="desk-nav-label">Твой зал</div>
       <nav aria-label="Основная навигация">{links.map(([path, icon, label]) => <button key={path} aria-label={label} title={label} className={'desk-nav-item' + (loc.pathname.startsWith(path) ? ' selected' : '')} aria-current={loc.pathname.startsWith(path) ? 'page' : undefined} onClick={() => nav(path)}><Icon name={icon} /><span>{label}</span>{path === '/home' && S.active && <i className="desk-live" />}</button>)}</nav>
 
@@ -50,7 +50,7 @@ export default function DesktopShell() {
         <div className="desk-profile"><span className="desk-avatar"><Icon name="house" /></span><div>{S.desktopName || 'Мой профиль'}<small>Гантели и дорожка</small></div><span className="desk-offline-dot" title="Локальное сохранение" /></div>
       </div>
     </aside>
-    <header className="desk-topbar"><div><span className="desk-breadcrumb">openGym</span><span className="desk-slash">/</span><b>{current}</b></div><div>{!['off', 'error'].includes(voiceStatus) && <button className="desk-voice-control" title="Выключить микрофон" aria-label="Выключить микрофон из любого раздела" onClick={() => { void stopVoice() }}>{VOICE_LABELS[voiceStatus]} · Стоп</button>}<div className={'desk-save ' + save.status} role="status"><Icon name={save.status === 'error' ? 'warning' : 'checkCircle'} /><span>{status}</span></div></div></header>
+    <header className="desk-topbar"><div><span className="desk-breadcrumb">openGym</span><span className="desk-slash">/</span><b>{current}</b></div><div>{!['off', 'error'].includes(voiceStatus) && <button className="desk-voice-control" title="Выключить микрофон" aria-label="Выключить микрофон из любого раздела" onClick={() => { void stopVoice() }}>{VOICE_LABELS[voiceStatus]}. Стоп</button>}<div className={'desk-save ' + save.status} role="status"><Icon name={save.status === 'error' ? 'warning' : 'checkCircle'} /><span>{status}</span></div></div></header>
     {searching && <div className="desk-command-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setSearching(false) }}>
       <div className="desk-command" role="dialog" aria-modal="true" aria-label="Быстрый переход" ref={commandRef} onKeyDown={e => {
         if (e.key === 'Tab') {

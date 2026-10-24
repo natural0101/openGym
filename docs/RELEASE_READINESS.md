@@ -1,4 +1,14 @@
-# Windows beta readiness — 2026-09-28
+# Windows 1.4.20 beta — 2026-10-24
+
+This update removes the desktop third-party artwork downloader while retaining existing local media. It fixes action-specific retries in Settings, reports folder-open failures, and closes the voice connection and widget when the user chooses to close after a failed save. Normal voice operation through the desktop widget is preserved. Windows UI text no longer uses decorative dot separators.
+
+Verified on the current Windows host: 41 desktop tests, 1,648 frontend tests, the existing application/security/voice/manual-write/queued-close/today/motivation smoke scenarios, and a new failed-save/close scenario using an isolated profile and loopback voice provider. The new close scenario confirms actual microphone input, a real renderer flush failure, application and socket termination, and byte-identical saved data. No personal profile is used by these checks.
+
+The 1.4.20 NSIS installer was built locally. Its app.asar has 202 entries, includes LICENSE and NOTICE.md, contains no training data, voice keys, backups or test output, and its desktop media runtime contains no downloader. Local build SHA256: `d5794872f6d588a4a4686558629d9b24898158544c26bac87bae422cca8f125a`. Independently built CI artifacts may have different hashes.
+
+This remains an unsigned Windows x64 beta with manual updates and optional paid Deepgram voice. A valid publisher certificate, ARM64 support, other consumer hardware, Windows reboot/Explorer recovery and long-duration recognition across microphones are not claimed by these checks. Public availability is established by the actual GitHub Release, not by this file or a successful build.
+
+## Historical 1.4.19 review — 2026-09-28
 
 Candidate: 1.4.19. Review scope: Windows desktop fork, not the inherited web server or mobile release.
 

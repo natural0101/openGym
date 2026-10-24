@@ -27,8 +27,8 @@ export function HomePlanChooser({ close }) {
   }
   return <div className="desk-plan-preview"><span className="desk-eyebrow">Стартовая программа</span><h3>План для дома</h3><p className="desk-helper">Шаблон для начала. Нагрузку и упражнения подстройте под себя.</p>
     <div className="desk-plan-tabs">{HOME_PLANS.map(p => <button key={p.id} aria-pressed={p.id === selected} className={p.id === selected ? 'on' : ''} onClick={() => setSelected(p.id)}>{p.title}</button>)}</div>
-    <p>{plan.description}</p><div className="desk-plan-meta"><Icon name="clock" />{plan.duration}<span>Пн · Ср · Пт</span></div>
-    {plan.sessions.map(r => <div className="desk-plan-session" key={r.name}><b>{r.name}</b><p>{r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).join(' · ')}</p></div>)}
+    <p>{plan.description}</p><div className="desk-plan-meta"><Icon name="clock" />{plan.duration}<span>Пн, ср, пт</span></div>
+    {plan.sessions.map(r => <div className="desk-plan-session" key={r.name}><b>{r.name}</b><p>{r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).join(', ')}</p></div>)}
     <p className="desk-helper">Перед силовой частью — 5 минут спокойной ходьбы и разминка суставов. Стартовый вес гантелей не задан: выберите комфортный в тренировке.</p>
     {!!S.routines.length && <p className="desk-helper">Текущие программы сохранятся. Новые занятия займут только свободные дни.</p>}
     <div className="desk-dialog-actions"><button className="btn" onClick={close}>Отмена</button><button className="btn primary" onClick={apply}>Добавить в мой план</button></div>
@@ -68,7 +68,7 @@ export default function DesktopHome() {
             <div className="folder-face">
               <button className="routine-folder-name" onClick={() => nav('/plan/r/' + r.id)}>
                 <span className="folder-meta"><span className="folder-icon"><Icon name={cardio ? 'figureRun' : 'dumbbell'} /></span><span>{r.ex.length} {r.ex.length === 1 ? 'упражнение' : r.ex.length > 1 && r.ex.length < 5 ? 'упражнения' : 'упражнений'}<small>{cardio ? 'Кардио' : 'Силовая тренировка'}</small></span><Icon name="arrowRight" /></span>
-                <h2>{r.name}</h2><p>{r.ex.length ? r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).slice(0,3).join(' · ') : 'Добавь упражнения, чтобы начать'}</p>
+                <h2>{r.name}</h2><p>{r.ex.length ? r.ex.map(e => HOME_NAMES[e.id] || EXIDX[e.id]?.n).slice(0,3).join(', ') : 'Добавь упражнения, чтобы начать'}</p>
               </button>
               <div className="folder-bottom"><span>{last ? 'Последняя: ' + new Date(last.d + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Ещё не начата'}</span><button className="routine-folder-start" disabled={!r.ex.length || !!S.active} title={S.active ? 'Сначала заверши текущую тренировку' : undefined} onClick={() => startFlow([r.id])}><Icon name="play" />Начать</button></div>
             </div>

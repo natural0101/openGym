@@ -27,14 +27,14 @@ function ExerciseCard({ entry, state, onEdit, editable }) {
   const groups = []
   for (const row of rows) {
     const cardio = row.mode === 'cardio' || row.min != null
-    const value = cardio ? `${row.min ?? 0} мин${row.speed != null ? ` · ${row.speed} км/ч` : ''}` : row.sec != null ? `${row.sec} сек` : `${row.w ?? 0} ${unit} · ${approximate || row.approximate ? '≈' : ''}${row.r ?? 0} повторов`
+    const value = cardio ? `${row.min ?? 0} мин${row.speed != null ? `, ${row.speed} км/ч` : ''}` : row.sec != null ? `${row.sec} сек` : `${row.w ?? 0} ${unit}, ${approximate || row.approximate ? '≈' : ''}${row.r ?? 0} повторов`
     const last = groups.at(-1)
     if (last?.value === value) last.count++
     else groups.push({ value, count: 1 })
   }
   const countLabel = n => n % 10 === 1 && n % 100 !== 11 ? 'подход' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'подхода' : 'подходов'
   return <article className="today-exercise"><details>
-    <summary className="today-exercise-summary"><div><h3>{name}</h3><p>{groups.length === 1 ? `${groups[0].value} · ${rows.length} ${countLabel(rows.length)}` : `${rows.length} ${countLabel(rows.length)} · разные значения`}</p></div><span className="today-expand" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span></summary>
+    <summary className="today-exercise-summary"><div><h3>{name}</h3><p>{groups.length === 1 ? `${rows.length} ${countLabel(rows.length)} по ${groups[0].value}` : `${rows.length} ${countLabel(rows.length)} с разными значениями`}</p></div><span className="today-expand" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span></summary>
     <div className="today-exercise-detail">
       {groups.length > 1 && <div className="today-groups">{groups.map((g, i) => <span key={i}>{g.count} × {g.value}</span>)}</div>}
       <div className="today-set-heading"><span>Подход</span><span>Вес / время</span><span>Повторы / скорость</span></div>

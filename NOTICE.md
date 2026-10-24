@@ -113,6 +113,10 @@ the published container images or the Android APK. A self-hosted instance downlo
 upstream source on first `docker compose up`; the mobile and demo builds load it from a CDN at
 runtime.
 
+The Windows desktop fork, starting with version 1.4.20, neither bundles nor downloads this
+third-party artwork. Existing user-local media is left unchanged. This Windows policy does not
+change the inherited web/mobile builds described above or resolve their third-party rights.
+
 If you want to reuse the media — in openGym or anywhere else, commercially or not — **clear it with
 the rights holder first**, and keep any attribution that accompanies it intact.
 

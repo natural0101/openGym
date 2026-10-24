@@ -31,6 +31,7 @@ jobs:
       - run: node desktop/voice-smoke.mjs
       - run: node desktop/manual-queue-smoke.mjs
       - run: node desktop/queued-close-smoke.mjs
+      - run: node desktop/failed-close-smoke.mjs
       - run: node desktop/today-smoke.mjs
       - run: node desktop/motivation-smoke.mjs
       - run: npm run dist

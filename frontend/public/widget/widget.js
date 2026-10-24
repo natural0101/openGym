@@ -5,7 +5,7 @@ const simple = value => value.widgetMode !== 'buddy'
 function render(value) {
  current = value
  const calm = simple(value), motivation = value.motivation || {}
- const voiceLabels = {off: 'Включить микрофон', connecting: 'Подключение · стоп', listening: 'Слушаю · выключить', thinking: 'Думаю · выключить', speaking: 'Говорю · выключить', error: 'Голос: повторить'}
+ const voiceLabels = {off: 'Включить микрофон', connecting: 'Подключение. Стоп', listening: 'Слушаю. Выключить', thinking: 'Думаю. Выключить', speaking: 'Говорю. Выключить', error: 'Голос: повторить'}
  $('voice').textContent = voiceLabels[value.voiceStatus] || voiceLabels.off
  $('voice').setAttribute('aria-pressed', String(![undefined,'off','error'].includes(value.voiceStatus)))
  const widget = document.querySelector('.widget')
@@ -20,7 +20,7 @@ function render(value) {
  $('mascot').style.setProperty('--burger-scale', value.buddy === 'cake' ? 1 : game.scale)
  $('victory').hidden = !game.won || value.buddy === 'cake'
  const goal = motivation.weekGoal || 3, done = motivation.weekDone || 0
- $('goal-label').textContent = calm ? `За неделю: ${done} из ${goal} дней с тренировкой` : game.won ? 'Бургер исчез. Цель достигнута!' : 'Бургер ' + game.remaining + '% · цель 0%'
+ $('goal-label').textContent = calm ? `За неделю: ${done} из ${goal} дней с тренировкой` : game.won ? 'Бургер исчез. Цель достигнута!' : 'Бургер ' + game.remaining + '%, цель 0%'
  const percent = calm ? Math.min(100,done / goal * 100) : Math.min(100,game.remaining / 150 * 100)
  $('progress').style.width = percent + '%'
  const progress = document.querySelector('.progress')
@@ -38,7 +38,7 @@ function tick() {
  $('heading').textContent = left ? timer.kind === 'rest' ? 'Время восстановиться' : 'Работаем' : calm ? motivation.headline || 'Сегодня — в своём темпе' : current.burger?.won ? 'Бургер побеждён!' : current.active ? 'Подход за подходом' : 'Убери Бургер'
  $('value').textContent = left ? Math.floor(left/60) + ':' + String(left%60).padStart(2,'0') : calm ? `${motivation.todaySets || 0} подходов` : current.active ? current.done + ' / ' + current.total : current.burger?.won ? 'Победа!' : (current.burger?.remaining ?? 100) + '%'
  $('detail').textContent = left ? timer.label : current.active ? current.name : calm ? (motivation.todaySets ? 'Записано за сегодня' : 'Пока без записей за сегодня') : current.burger?.won ? 'Твоя регулярность победила' : 'Заверши занятие — Бургер уменьшится'
- $('secondary').textContent = left ? timer.kind === 'rest' ? 'Пропустить отдых' : 'Идёт разминка…' : 'Разминка · 2 минуты'
+ $('secondary').textContent = left ? timer.kind === 'rest' ? 'Пропустить отдых' : 'Идёт разминка…' : 'Разминка на 2 минуты'
  $('secondary').disabled = left > 0 && timer.kind !== 'rest'
  $('secondary').hidden = calm && !(left > 0 && timer.kind === 'rest')
 }

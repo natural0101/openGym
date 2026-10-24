@@ -45,7 +45,7 @@ export function MotivationReminderBanner() {
   const act = async action => { setBusy(true); setError(''); try { await desktop().reminderAction(action); if (action === 'open') nav('/home') } catch (e) { setError(e.message) } finally { setBusy(false) } }
   return <aside className="desk-panel" aria-label="Напоминание о тренировке" style={{ position: 'fixed', right: 24, bottom: 24, zIndex: 80, maxWidth: 'min(430px, calc(100vw - 48px))', margin: 0 }}>
     <h2>Немного времени для себя</h2><p className="desk-helper">Есть силы позаниматься? Начни с одного подхода. День отдыха тоже можно выбрать.</p>
-    <div className="desk-setting-actions"><button className="btn primary" disabled={busy} onClick={() => { void act('open') }}>К тренировке</button><button className="btn" disabled={busy} onClick={() => { void act('later') }}>Позже · 30 мин</button><button className="btn" disabled={busy} onClick={() => { void act('rest') }}>Сегодня отдых</button></div>
+    <div className="desk-setting-actions"><button className="btn primary" disabled={busy} onClick={() => { void act('open') }}>К тренировке</button><button className="btn" disabled={busy} onClick={() => { void act('later') }}>Позже, через 30 мин</button><button className="btn" disabled={busy} onClick={() => { void act('rest') }}>Сегодня отдых</button></div>
     {error && <p role="alert">{error}</p>}
   </aside>
 }
